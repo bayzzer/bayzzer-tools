@@ -1,0 +1,43 @@
+{
+  "name": "bayzzer-tools",
+  "version": "1.0.0",
+  "private": false,
+  "license": "MIT",
+  "homepage": "www.bayzzer.net",
+  "dependencies": {
+    "@types/node": "^16.11.41",
+    "@types/react": "^18.0.14",
+    "react": "^18.2.0",
+    "typescript": "^4.7.4"
+  },
+  "scripts": {
+    "dev": "start-storybook -p 7001",
+    "build": "build-storybook"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.18.5",
+    "@storybook/addon-actions": "^6.5.9",
+    "@storybook/addon-essentials": "^6.5.9",
+    "@storybook/addon-interactions": "^6.5.9",
+    "@storybook/addon-links": "^6.5.9",
+    "@storybook/builder-webpack4": "^6.5.9",
+    "@storybook/manager-webpack4": "^6.5.9",
+    "@storybook/react": "^6.5.9",
+    "@storybook/testing-library": "^0.0.13",
+    "babel-loader": "^8.2.5",
+    "storybook-dark-mode": "^1.1.0",
+    "tsconfig-paths-webpack-plugin": "^3.5.2"
+  }
+}
