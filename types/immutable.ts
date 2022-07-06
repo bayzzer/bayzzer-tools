@@ -1,4 +1,4 @@
-import { DRAFT_STATE, ImmutableManage } from 'index'
+import { DRAFT_STATE, ImmutableManage } from '@bayzzer/tools'
 
 export interface ImmutableScope {
 	drafts: any[]

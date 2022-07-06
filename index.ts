@@ -1,2 +1,2 @@
-export * from './types'
-export * from './tools/immutable'
+export type { IProduce } from '@types'
+export { ImmutableManage } from '@bayzzer/tools'

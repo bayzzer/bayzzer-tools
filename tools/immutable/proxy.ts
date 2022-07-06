@@ -30,7 +30,6 @@ export function processScope<T>(scope: ImmutableScope) {
 
 	const baseDraft = scope.drafts![0]
 	const state: ImmutableState<T> = baseDraft[DRAFT_STATE]
-	console.log(state.base_)
 	if (!state.finalized_) {		
 		const result = state.copy_		
 		freeze(result, false)		

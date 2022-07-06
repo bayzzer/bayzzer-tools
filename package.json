@@ -3,7 +3,20 @@
   "version": "1.0.0",
   "private": false,
   "license": "MIT",
+  "typings": "dist/index.d.ts",
   "homepage": "www.bayzzer.net",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bayzzer/bayzzer-tools"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@types/node": "^16.11.41",
     "@types/react": "^18.0.14",
@@ -12,7 +25,9 @@
   },
   "scripts": {
     "dev": "start-storybook -p 7001",
-    "build": "build-storybook"
+    "build": "npm run clean && tsc && gulp minify",
+    "build-sb": "build-storybook",
+    "clean": "rimraf dist"
   },
   "browserslist": {
     "production": [
@@ -37,7 +52,22 @@
     "@storybook/react": "^6.5.9",
     "@storybook/testing-library": "^0.0.13",
     "babel-loader": "^8.2.5",
+    "copyfiles": "^2.4.1",
+    "gulp": "^4.0.2",
+    "gulp-concat": "^2.6.1",
+    "gulp-minify": "^3.1.0",
+    "rimraf": "^3.0.2",
+    "semantic-release": "^19.0.3",
     "storybook-dark-mode": "^1.1.0",
-    "tsconfig-paths-webpack-plugin": "^3.5.2"
-  }
+    "tsconfig-paths-webpack-plugin": "^3.5.2",
+    "uglify-js": "^3.16.2"
+  },
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    "@semantic-release/github",
+    "@semantic-release/npm",
+    "@semantic-release/git"
+  ]
 }
