@@ -4,11 +4,12 @@ name: Semantic Release
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -19,17 +20,20 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: Setup Node.js
+      - uses: actions/checkout@v2
+      - name: Setup Node.js
         uses: actions/setup-node@v1
-          with:
-            node-version: 14.17
+        with:
+          node-version: 14.17
+
       - name: Install Dependencies
         run: npm install
+
       - name: Build App
         run: npm run build
+
       - name: Semantic Release
         env:
-          gh_token: {{secrets.GH_TOKEN}}
-          npm_token: {{secrets.NPM_TOKEN}}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
