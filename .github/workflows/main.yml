@@ -27,7 +27,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
       - name: Build App
-        run: npm build
+        run: npm run build
       - name: Semantic Release
         env:
           gh_token: {{secrets.GH_TOKEN}}
