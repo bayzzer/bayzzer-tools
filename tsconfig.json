@@ -18,12 +18,8 @@
     "declarationMap": true,
     "noEmit": false,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "module":"CommonJS",
-    "allowSyntheticDefaultImports": true,
-    "noFallthroughCasesInSwitch": true,
-    "allowJs": true,
-    "skipLibCheck": true,
+    "module": "esnext",
+    "allowJs": true
   },
   "exclude": [
     "node_modules",
