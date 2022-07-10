@@ -1,8 +1,8 @@
-import { DRAFT_STATE, ImmutableManage } from '@bayzzer/tools'
+import { DRAFT_STATE, ManageState } from '@bayzzer/tools'
 
 export interface ImmutableScope {
 	drafts: any[]
-	manage: ImmutableManage
+	manage: ManageState
 }
 
 export interface IProduce<T> {

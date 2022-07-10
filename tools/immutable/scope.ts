@@ -1,5 +1,5 @@
 import { 
-	ImmutableManage
+	ManageState
 } from '@bayzzer/tools'
 import { ImmutableScope } from '@types'
 
@@ -10,7 +10,7 @@ export function getCurrentScope() {
 }
 
 function createScope(
-	manage: ImmutableManage
+	manage: ManageState
 ): ImmutableScope {
 	return {
 		drafts: [],
@@ -18,6 +18,6 @@ function createScope(
 	}
 }
 
-export function enterScope(manage: ImmutableManage) {
+export function enterScope(manage: ManageState) {
 	return (currentScope = createScope(manage))
 }
