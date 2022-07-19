@@ -1,0 +1,1 @@
+export type PartialDeep<T> = Partial<{ [P in keyof T]: PartialDeep<T[P]> }>
