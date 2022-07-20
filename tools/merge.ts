@@ -1,14 +1,16 @@
 import {isObject} from '@bayzzer/tools'
 
-export const mergeDeep = <T>(target: T | any, ...sources: any): T => {
+export const mergeDeep = <T>(target: T, ...sources: any): T => {
     if (!sources.length) return target
     const source = sources.shift()
     if (isObject(target) && isObject(source)) {
         for (const key in source) {
             if (isObject(source[key])) {
+                // @ts-ignore
                 if (!target[key]) Object.assign(target, {
                     [key]: {}
                 })
+                // @ts-ignore
                 mergeDeep(target[key], source[key]);
             } else {
                 Object.assign(target, {
