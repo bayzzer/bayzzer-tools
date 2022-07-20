@@ -1,2 +1,2 @@
 export * from '@types'
-export { ManageState } from '@bayzzer/tools'
+export * from '@bayzzer/tools'
