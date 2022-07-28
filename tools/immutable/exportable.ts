@@ -6,6 +6,7 @@ import {
 	//Draft,
 	Immutable,
 	ImmutableProduce,
+	ImmutableDispatch
 	//IProduceWithPatches 
 } from "@bayzzer/tools"
 
@@ -78,7 +79,11 @@ export const immutable: ImmutableProduce = immutableManage.immutable
 // 	return value as any
 // }
 
-export { ImmutableManage, Immutable }
+export { 
+	ImmutableManage, 
+	Immutable, 
+	ImmutableDispatch 
+}
 
 // export {enableES5} from "./plugins/es5"
 // export {enablePatches} from "./plugins/patches"
