@@ -1,11 +1,11 @@
 import { ImmutableManage } from "./core"
-export {useImmutableState} from './use-immutable-state'
-export {useImmutableReducer} from './use-immutable-reducer'
+export { useImmutableState } from './use-immutable-state'
+export { useImmutableReducer } from './use-immutable-reducer'
 
-import { 
+import {
 	//Draft,
-	//Immutable,
-	ImmutableProduce, 
+	Immutable,
+	ImmutableProduce,
 	//IProduceWithPatches 
 } from "@bayzzer/tools"
 
@@ -78,7 +78,7 @@ export const immutable: ImmutableProduce = immutableManage.immutable
 // 	return value as any
 // }
 
-export {ImmutableManage}
+export { ImmutableManage, Immutable }
 
 // export {enableES5} from "./plugins/es5"
 // export {enablePatches} from "./plugins/patches"
