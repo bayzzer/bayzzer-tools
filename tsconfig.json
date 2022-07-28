@@ -3,7 +3,7 @@
     "outDir": "dist", 
     "baseUrl": ".",
     "paths": {     
-      "@types": ["types/index"], 
+      "@bayzzer/commons": ["commons/index"], 
       "@bayzzer/tools": ["tools/index"]
     },
     "lib": ["es2015"],
@@ -19,7 +19,8 @@
     "noEmit": false,
     "moduleResolution": "node",
     "module": "esnext",
-    "allowJs": true
+    "allowJs": true,
+    "jsx": "react-jsx"
   },
   "exclude": [
     "node_modules",

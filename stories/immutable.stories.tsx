@@ -1,12 +1,9 @@
-const Component = () => <Immutable/>
+
+import React from 'react'
+import { Immutable } from '../component/immutable';
+const Component = () => <Immutable />
 
 export const Default = Component.bind({})
-
-const Immutable  =() => {
-    return (
-        <>Imutable</>
-    )
-}
 
 export default {
     title: 'Bayzzer-Tools/Immutable/Test',
