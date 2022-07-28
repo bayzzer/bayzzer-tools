@@ -203,6 +203,7 @@ export class ImmutableManage implements ProducersFns {
 			return applyPatchesImpl(base, patches)
 		}
 		// Otherwise, produce a copy of the base state.
+		//@ts-ignore
 		return this.immutable(base, (draft: Drafted) =>
 			applyPatchesImpl(draft, patches)
 		)
