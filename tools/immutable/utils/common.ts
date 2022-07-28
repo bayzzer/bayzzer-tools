@@ -87,13 +87,14 @@ export function eachProperty<T extends Objectish>(
 	iter: (key: string | number, value: any, source: T) => void,
 	enumerableOnly?: boolean
 ): void
+
 export function eachProperty(obj: any, iter: any, enumerableOnly = false) {
 	if (getArchtype(obj) === Archtype.Object) {
-		;(enumerableOnly ? Object.keys : ownKeys)(obj).forEach(key => {
+		(enumerableOnly ? Object.keys : ownKeys)(obj).forEach(key => {
 			if (!enumerableOnly || typeof key !== "symbol") iter(key, obj[key], obj)
 		})
 	} else {
-		obj.forEach((entry: any, index: any) => iter(index, entry, obj))
+		obj && obj.forEach((entry: any, index: any) => iter(index, entry, obj))
 	}
 }
 

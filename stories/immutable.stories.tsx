@@ -1,6 +1,6 @@
 
 import React from 'react'
-import { Immutable } from '../component/immutable';
+import { Immutable } from '../components/immutable';
 const Component = () => <Immutable />
 
 export const Default = Component.bind({})

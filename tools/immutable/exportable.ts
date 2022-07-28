@@ -1,18 +1,6 @@
-import { ImmutableManage } from "./core"
-export { useImmutableState } from './use-immutable-state'
-export { useImmutableReducer } from './use-immutable-reducer'
-
-import {
-	//Draft,
-	Immutable,
-	ImmutableProduce,
-	ImmutableDispatch
-	//IProduceWithPatches 
-} from "@bayzzer/tools"
-
-const immutableManage = new ImmutableManage()
-
-export const immutable: ImmutableProduce = immutableManage.immutable
+// const immutableManage = new ImmutableManage()
+// const immutable = immutableManage.create
+// export { immutable }
 
 // /**
 //  * Like `produce`, but `produceWithPatches` always returns a tuple
@@ -78,12 +66,6 @@ export const immutable: ImmutableProduce = immutableManage.immutable
 // export function castImmutable<T>(value: T): Immutable<T> {
 // 	return value as any
 // }
-
-export { 
-	ImmutableManage, 
-	Immutable, 
-	ImmutableDispatch 
-}
 
 // export {enableES5} from "./plugins/es5"
 // export {enablePatches} from "./plugins/patches"

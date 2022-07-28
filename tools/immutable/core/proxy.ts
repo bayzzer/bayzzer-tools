@@ -1,18 +1,18 @@
-import { 
+import {
 	createProxy,
 	Drafted,
 	DRAFT_STATE,
 	eachProperty,
 	getCurrentScope,
 	hasProperty,
-	ImmutableType, 
-	isEqual, 
-	isDraftable, 
-	latest, 
-	Objectish, 
-	ProxyArrayState, 
-	ProxyObjectState, 
-	ProxyState, 
+	ImmutableType,
+	isEqual,
+	isDraftable,
+	latest,
+	Objectish,
+	ProxyArrayState,
+	ProxyObjectState,
+	ProxyState,
 	ProxyType,
 	shallowCopy
 } from "@bayzzer/tools"
@@ -26,6 +26,7 @@ export function createProxyDraft<T extends Objectish>(
 	base: T,
 	parent?: ImmutableType
 ): Drafted<T, ProxyState> {
+
 	const isArray = Array.isArray(base)
 	const state: ProxyState = {
 		type_: isArray ? ProxyType.ProxyArray : (ProxyType.ProxyObject as any),
@@ -50,6 +51,28 @@ export function createProxyDraft<T extends Objectish>(
 		isManual_: false
 	}
 
+	/**
+ * Array drafts
+ */
+	const arrayTraps: ProxyHandler<[ProxyArrayState]> = {}
+
+	eachProperty(objectTraps, (key, fn) => {
+		// @ts-ignore
+		arrayTraps[key] = function () {
+			arguments[0] = arguments[0][0]
+			return fn.apply(this, arguments)
+		}
+	})
+
+	arrayTraps.deleteProperty = function (state, prop) {
+		// @ts-ignore
+		return arrayTraps.set!.call(this, state, prop, undefined)
+	}
+	arrayTraps.set = function (state, prop, value) {
+		return objectTraps.set!.call(this, state[0], prop, value, state[0])
+	}
+
+
 	// the traps must target something, a bit like the 'real' base.
 	// but also, we need to be able to determine from the target what the relevant state is
 	// (to avoid creating traps per instance to capture the state in closure,
@@ -63,7 +86,7 @@ export function createProxyDraft<T extends Objectish>(
 		traps = arrayTraps
 	}
 
-	const {revoke, proxy} = Proxy.revocable(target, traps)
+	const { revoke, proxy } = Proxy.revocable(target, traps)
 	state.draft_ = proxy as any
 	state.revoke_ = revoke
 	return proxy as any
@@ -182,23 +205,23 @@ export const objectTraps: ProxyHandler<ProxyState> = {
  * Array drafts
  */
 
-const arrayTraps: ProxyHandler<[ProxyArrayState]> = {}
+// const arrayTraps: ProxyHandler<[ProxyArrayState]> = {}
 
-eachProperty(objectTraps, (key, fn) => {
-	// @ts-ignore
-	arrayTraps[key] = function() {
-		arguments[0] = arguments[0][0]
-		return fn.apply(this, arguments)
-	}
-})
+// eachProperty(objectTraps, (key, fn) => {
+// 	// @ts-ignore
+// 	arrayTraps[key] = function() {
+// 		arguments[0] = arguments[0][0]
+// 		return fn.apply(this, arguments)
+// 	}
+// })
 
-arrayTraps.deleteProperty = function(state, prop) {
-	// @ts-ignore
-	return arrayTraps.set!.call(this, state, prop, undefined)
-}
-arrayTraps.set = function(state, prop, value) {
-	return objectTraps.set!.call(this, state[0], prop, value, state[0])
-}
+// arrayTraps.deleteProperty = function(state, prop) {
+// 	// @ts-ignore
+// 	return arrayTraps.set!.call(this, state, prop, undefined)
+// }
+// arrayTraps.set = function(state, prop, value) {
+// 	return objectTraps.set!.call(this, state[0], prop, value, state[0])
+// }
 
 // Access a property without creating an Immer draft.
 function peek(draft: Drafted, prop: PropertyKey) {
@@ -213,8 +236,8 @@ function readPropFromProto(state: ImmutableType, source: any, prop: PropertyKey)
 		? `value` in desc
 			? desc.value
 			: // This is a very special case, if the prop is a getter defined by the
-			  // prototype, we should invoke it with the draft as context!
-			  desc.get?.call(state.draft_)
+			// prototype, we should invoke it with the draft as context!
+			desc.get?.call(state.draft_)
 		: undefined
 }
 
@@ -242,7 +265,7 @@ export function markChanged(state: ImmutableType) {
 	}
 }
 
-export function prepareCopy(state: {base_: any; copy_: any}) {
+export function prepareCopy(state: { base_: any; copy_: any }) {
 	if (!state.copy_) {
 		state.copy_ = shallowCopy(state.base_)
 	}

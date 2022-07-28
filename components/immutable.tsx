@@ -1,11 +1,10 @@
-import { 
-    immutable, 
+import {
+    ImmutableManage,
     useImmutableReducer,
     useImmutableState
-} from 'tools/immutable/exportable'
+} from '@bayzzer/tools'
 
 export const Immutable = () => {
-
     interface State {
         layout: {
             theme: {
@@ -38,10 +37,10 @@ export const Immutable = () => {
         },
         list: [],
         pez: () => { console.log('pez') }
-    }    
+    }
+    const immutable = new ImmutableManage().create
 
     const [state, dispatch] = useImmutableReducer(immutable, _base)
-    //const dispatch = useCallback(dispatchState, [])
 
     const testImmutableOperation = () => {
         const newStateImmutable = immutable(_base, draft => {
@@ -78,10 +77,10 @@ export const Immutable = () => {
             draft.layout.theme.current = `theme ${Math.random()}`
             //draft.layout.theme.list.push(`${Math.random()}`)
             draft.test.value = `${Math.random()}`
-            draft.pez = () => {console.log('pez update', Math.random() )}
-            draft.list.push('new item')      
+            draft.pez = () => { console.log('pez update', Math.random()) }
+            draft.list.push('new item')
         })
-    }    
+    }
 
     return (
         <>
@@ -95,14 +94,14 @@ export const Immutable = () => {
             </pre>
 
             <span>From useState</span>
-            <div style={{ display: 'grid' }}>                
+            <div style={{ display: 'grid' }}>
                 <button onClick={testImmutableFromUseState}>Immutable useState</button>
                 <button onClick={mutableUseState}>Mutable useState</button>
             </div>
             <pre style={{ color: '#ce7ad3' }}>
                 <code>{JSON.stringify(todos, null, 2)}</code>
-            </pre>   
-            <button onClick={testImmutableOperation}>Immutable Operation</button>        
+            </pre>
+            <button onClick={testImmutableOperation}>Immutable Operation</button>
         </>
     )
 }

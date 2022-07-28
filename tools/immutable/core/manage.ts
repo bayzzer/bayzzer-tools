@@ -27,7 +27,7 @@ import {
 } from "@bayzzer/tools"
 
 interface ProducersFns {
-	immutable: ImmutableProduce
+	create: ImmutableProduce
 	produceWithPatches: IProduceWithPatches
 }
 
@@ -62,7 +62,7 @@ export class ImmutableManage implements ProducersFns {
 	 * @param {Function} patchListener - optional function that will be called with all the patches produced here
 	 * @returns {any} a new state, or the initial state if nothing was modified
 	 */
-	immutable: ImmutableProduce = (base: any, recipe?: any, patchListener?: any) => {
+	create: ImmutableProduce = (base: any, recipe?: any, patchListener?: any) => {
 		// curried invocation
 		if (typeof base === "function" && typeof recipe !== "function") {
 			const defaultBase = recipe
@@ -74,7 +74,7 @@ export class ImmutableManage implements ProducersFns {
 				base = defaultBase,
 				...args: any[]
 			) {
-				return self.immutable(base, (draft: Drafted) => recipe.call(this, draft, ...args)) // prettier-ignore
+				return self.create(base, (draft: Drafted) => recipe.call(this, draft, ...args)) // prettier-ignore
 			}
 		}
 
@@ -132,7 +132,7 @@ export class ImmutableManage implements ProducersFns {
 		}
 
 		let patches: Patch[], inversePatches: Patch[]
-		const result = this.immutable(arg1, arg2, (p: Patch[], ip: Patch[]) => {
+		const result = this.create(arg1, arg2, (p: Patch[], ip: Patch[]) => {
 			patches = p
 			inversePatches = ip
 		})
@@ -204,7 +204,7 @@ export class ImmutableManage implements ProducersFns {
 		}
 		// Otherwise, produce a copy of the base state.
 		//@ts-ignore
-		return this.immutable(base, (draft: Drafted) =>
+		return this.create(base, (draft: Drafted) =>
 			applyPatchesImpl(draft, patches)
 		)
 	}
