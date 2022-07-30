@@ -1,14 +1,12 @@
-import { ImmutableManage, ImmutableProduce } from '@bayzzer/tools'
+import { ImmutableManage } from '@bayzzer/tools'
 export * from './commons/types'
 export * from './tools/immutable/types'
 export {
+    freeze,
     mergeDeep,
-    isObject,
-    useImmutableReducer,
-    useImmutableState
+    isObject
 } from '@bayzzer/tools'
 
 export {
-    ImmutableManage,
-    ImmutableProduce
+    ImmutableManage
 }
