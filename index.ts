@@ -4,7 +4,8 @@ export * from './tools/immutable/types'
 export {
     freeze,
     mergeDeep,
-    isObject
+    isObject,
+    parseJSON
 } from '@bayzzer/tools'
 
 export {
