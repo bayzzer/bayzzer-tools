@@ -6,8 +6,12 @@
       "@bayzzer/commons": ["commons/index"], 
       "@bayzzer/tools": ["tools/index"]
     },
-    "lib": ["es2015"],
-    "target": "ES6",
+    "target": "es6",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "strict": true,
     "declaration": true,
     "importHelpers": false,

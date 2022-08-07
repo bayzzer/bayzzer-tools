@@ -5,7 +5,8 @@ export {
     freeze,
     mergeDeep,
     isObject,
-    parseJSON
+    parseJSON,
+    clsx
 } from '@bayzzer/tools'
 
 export {
