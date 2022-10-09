@@ -1,10 +1,10 @@
 import type {
-  ZodArray,
-  ZodNullable,
-  ZodObject,
-  ZodOptional,
-  ZodTuple,
-  ZodTupleItems,
+  ValidationArray,
+  ValidationNullable,
+  ValidationObject,
+  ValidationOptional,
+  ValidationTuple,
+  TupleItems,
   ValidateAnyType,
 } from "../index";
 
@@ -34,30 +34,30 @@ export namespace partialUtil {
   //   ? "object" // T extends ZodOptional<any> // ? 'optional' // :
   //   : "rest"];
 
-  export type DeepPartial<T extends ValidateAnyType> = T extends ZodObject<
+  export type DeepPartial<T extends ValidateAnyType> = T extends ValidationObject<
     infer Shape,
     infer Params,
     infer Catchall
   >
-    ? ZodObject<
-        { [k in keyof Shape]: ZodOptional<DeepPartial<Shape[k]>> },
+    ? ValidationObject<
+        { [k in keyof Shape]: ValidationOptional<DeepPartial<Shape[k]>> },
         Params,
         Catchall
       >
-    : T extends ZodArray<infer Type, infer Card>
-    ? ZodArray<DeepPartial<Type>, Card>
-    : T extends ZodOptional<infer Type>
-    ? ZodOptional<DeepPartial<Type>>
-    : T extends ZodNullable<infer Type>
-    ? ZodNullable<DeepPartial<Type>>
-    : T extends ZodTuple<infer Items>
+    : T extends ValidationArray<infer Type, infer Card>
+    ? ValidationArray<DeepPartial<Type>, Card>
+    : T extends ValidationOptional<infer Type>
+    ? ValidationOptional<DeepPartial<Type>>
+    : T extends ValidationNullable<infer Type>
+    ? ValidationNullable<DeepPartial<Type>>
+    : T extends ValidationTuple<infer Items>
     ? {
         [k in keyof Items]: Items[k] extends ValidateAnyType
           ? DeepPartial<Items[k]>
           : never;
       } extends infer PI
-      ? PI extends ZodTupleItems
-        ? ZodTuple<PI>
+      ? PI extends TupleItems
+        ? ValidationTuple<PI>
         : never
       : never
     : T;

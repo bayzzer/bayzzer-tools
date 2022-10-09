@@ -297,7 +297,7 @@ export type ErrorMapCtx = {
   data: any;
 };
 
-export type ZodErrorMap = (
+export type ErrorMap = (
   issue: InvalidOptionalMessage,
   _ctx: ErrorMapCtx
 ) => { message: string }

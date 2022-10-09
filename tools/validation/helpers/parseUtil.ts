@@ -1,12 +1,12 @@
 import { getErrorMap } from "../errors";
 import defaultErrorMap from "../locales/en";
-import type { ErrorData, ZodErrorMap, Issue } from "../ZodError";
+import type { ErrorData, ErrorMap, Issue } from "../ZodError";
 import type { ZodParsedType } from "./util";
 
 export const makeIssue = (params: {
   data: any;
   path: (string | number)[];
-  errorMaps: ZodErrorMap[];
+  errorMaps: ErrorMap[];
   issueData: ErrorData;
 }): Issue => {
   const { data, path, errorMaps, issueData } = params;
@@ -20,7 +20,7 @@ export const makeIssue = (params: {
   const maps = errorMaps
     .filter((m) => !!m)
     .slice()
-    .reverse() as ZodErrorMap[];
+    .reverse() as ErrorMap[];
   for (const map of maps) {
     errorMessage = map(fullIssue, { data, defaultError: errorMessage }).message;
   }
@@ -34,7 +34,7 @@ export const makeIssue = (params: {
 
 export type ParseParams = {
   path: (string | number)[];
-  errorMap: ZodErrorMap;
+  errorMap: ErrorMap;
   async: boolean;
 };
 
@@ -45,11 +45,11 @@ export const EMPTY_PATH: ParsePath = [];
 export interface ParseContext {
   readonly common: {
     readonly issues: Issue[];
-    readonly contextualErrorMap?: ZodErrorMap;
+    readonly contextualErrorMap?: ErrorMap;
     readonly async: boolean;
   };
   readonly path: ParsePath;
-  readonly schemaErrorMap?: ZodErrorMap;
+  readonly schemaErrorMap?: ErrorMap;
   readonly parent: ParseContext | null;
   readonly data: any;
   readonly parsedType: ZodParsedType;
@@ -74,7 +74,7 @@ export function addIssueToContext(
       ctx.schemaErrorMap, // then schema-bound map if available
       getErrorMap(), // then global override map
       defaultErrorMap, // then global default map
-    ].filter((x) => !!x) as ZodErrorMap[],
+    ].filter((x) => !!x) as ErrorMap[],
   });
   ctx.common.issues.push(issue);
 }
