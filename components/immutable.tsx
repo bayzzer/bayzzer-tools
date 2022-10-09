@@ -1,6 +1,8 @@
 import {
     ImmutableManage
 } from '@bayzzer/tools'
+import { z } from 'tools/validation'
+//import { object, string } from 'tools/validation'
 
 export const Immutable = () => {
     interface State {
@@ -20,6 +22,11 @@ export const Immutable = () => {
         pez: () => void
     }
 
+    type User = {
+        username: string
+        password: string
+    }
+
     const _base: State = {
         layout: {
             theme: {
@@ -36,7 +43,7 @@ export const Immutable = () => {
         list: [],
         pez: () => { console.log('pez') }
     }
-    const immutable = new ImmutableManage().create    
+    const immutable = new ImmutableManage().create
 
     const testImmutableOperation = () => {
         const newStateImmutable = immutable(_base, draft => {
@@ -47,17 +54,47 @@ export const Immutable = () => {
         //@ts-ignore
         newStateImmutable.pez = () => { console.log('pez new state') }
     }
-   
 
-    
+    // const fullNameValidation = (fullName: string) => {
+    //     var regexp = /^[a-z]{3,} [a-z]{3,}$/i
+    //     const valid = regexp.test(fullName);
+    //     return valid
+    // }
 
-    
+    const testString = async () => {
+        // const t = string().min(4).max(50).test('testt EFF', 'TEXTO ERROR', fullNameValidation).required()
+        // var x = await t.validate('test ERR')
+        //console.log(x)
+        //ObjectSchema<User>
+        // const objectSchema = object({
+        //     username: string().min(4).max(50).required("*"),
+        //     password: string().min(5).required('#')
+        // })
 
-     
+        // const obj: User = {
+        //     username: 'ertyrty',
+        //     password: 'trttrt'
+        // }
+
+        // var z = await objectSchema.validate(obj)
+        // console.log(z)
+        const schema: z.ZodType<User> = z.object({
+            username: z.string().min(2, 'min 5'),
+            password: z.string().min(2, 'min 5')
+        })
+
+        var user = {
+            username: 'us'
+        }
+
+        var r = schema.parse(user)
+        console.log(r)
+    }
 
     return (
-        <>                      
+        <>
             <button onClick={testImmutableOperation}>Immutable Operation</button>
+            <button onClick={testString}>Test string</button>
         </>
     )
 }
