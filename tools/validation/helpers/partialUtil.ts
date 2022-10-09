@@ -5,7 +5,7 @@ import type {
   ZodOptional,
   ZodTuple,
   ZodTupleItems,
-  ZodTypeAny,
+  ValidateAnyType,
 } from "../index";
 
 export namespace partialUtil {
@@ -34,7 +34,7 @@ export namespace partialUtil {
   //   ? "object" // T extends ZodOptional<any> // ? 'optional' // :
   //   : "rest"];
 
-  export type DeepPartial<T extends ZodTypeAny> = T extends ZodObject<
+  export type DeepPartial<T extends ValidateAnyType> = T extends ZodObject<
     infer Shape,
     infer Params,
     infer Catchall
@@ -52,7 +52,7 @@ export namespace partialUtil {
     ? ZodNullable<DeepPartial<Type>>
     : T extends ZodTuple<infer Items>
     ? {
-        [k in keyof Items]: Items[k] extends ZodTypeAny
+        [k in keyof Items]: Items[k] extends ValidateAnyType
           ? DeepPartial<Items[k]>
           : never;
       } extends infer PI

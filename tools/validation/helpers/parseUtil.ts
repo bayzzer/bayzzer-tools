@@ -1,14 +1,14 @@
 import { getErrorMap } from "../errors";
 import defaultErrorMap from "../locales/en";
-import type { IssueData, ZodErrorMap, ZodIssue } from "../ZodError";
+import type { ErrorData, ZodErrorMap, Issue } from "../ZodError";
 import type { ZodParsedType } from "./util";
 
 export const makeIssue = (params: {
   data: any;
   path: (string | number)[];
   errorMaps: ZodErrorMap[];
-  issueData: IssueData;
-}): ZodIssue => {
+  issueData: ErrorData;
+}): Issue => {
   const { data, path, errorMaps, issueData } = params;
   const fullPath = [...path, ...(issueData.path || [])];
   const fullIssue = {
@@ -44,7 +44,7 @@ export const EMPTY_PATH: ParsePath = [];
 
 export interface ParseContext {
   readonly common: {
-    readonly issues: ZodIssue[];
+    readonly issues: Issue[];
     readonly contextualErrorMap?: ZodErrorMap;
     readonly async: boolean;
   };
@@ -63,7 +63,7 @@ export type ParseInput = {
 
 export function addIssueToContext(
   ctx: ParseContext,
-  issueData: IssueData
+  issueData: ErrorData
 ): void {
   const issue = makeIssue({
     issueData: issueData,

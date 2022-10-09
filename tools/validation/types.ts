@@ -24,35 +24,28 @@ import { partialUtil } from "./helpers/partialUtil";
 import { Primitive } from "./helpers/typeAliases";
 import { getParsedType, util, ZodParsedType } from "./helpers/util";
 import {
-  IssueData,
+  ErrorData,
   StringValidation,
-  ZodCustomIssue,
-  ZodError,
+  CustomError,
+  ValidateError,
   ZodErrorMap,
-  ZodIssue,
-  ZodIssueCode,
+  Issue,
+  ErrorCode,
 } from "./ZodError";
 
-///////////////////////////////////////
-///////////////////////////////////////
-//////////                   //////////
-//////////      ZodType      //////////
-//////////                   //////////
-///////////////////////////////////////
-///////////////////////////////////////
-
 export type RefinementCtx = {
-  addIssue: (arg: IssueData) => void;
-  path: (string | number)[];
-};
-export type ZodRawShape = { [k: string]: ZodTypeAny };
-export type ZodTypeAny = ZodType<any, any, any>;
-export type TypeOf<T extends ZodType<any, any, any>> = T["_output"];
-export type input<T extends ZodType<any, any, any>> = T["_input"];
-export type output<T extends ZodType<any, any, any>> = T["_output"];
+  addIssue: (arg: ErrorData) => void
+  path: (string | number)[]
+}
+
+export type RawShape = { [k: string]: ValidateAnyType }
+export type ValidateAnyType = ValidateType<any, any, any>
+export type TypeOf<T extends ValidateType<any, any, any>> = T["_output"];
+export type Input<T extends ValidateType<any, any, any>> = T["_input"];
+export type Output<T extends ValidateType<any, any, any>> = T["_output"];
 export type { TypeOf as infer };
 
-export type CustomErrorParams = Partial<util.Omit<ZodCustomIssue, "code">>;
+export type CustomErrorParams = Partial<util.Omit<CustomError, "code">>;
 export interface ZodTypeDef {
   errorMap?: ZodErrorMap;
   description?: string;
@@ -84,14 +77,14 @@ const handleResult = <Input, Output>(
   result: SyncParseReturnType<Output>
 ):
   | { success: true; data: Output }
-  | { success: false; error: ZodError<Input> } => {
+  | { success: false; error: ValidateError<Input> } => {
   if (isValid(result)) {
     return { success: true, data: result.value };
   } else {
     if (!ctx.common.issues.length) {
       throw new Error("Validation failed but no issues detected.");
     }
-    const error = new ZodError(ctx.common.issues);
+    const error = new ValidateError(ctx.common.issues);
     return { success: false, error };
   }
 };
@@ -125,13 +118,13 @@ function processCreateParams(params: RawCreateParams): ProcessedCreateParams {
 }
 
 export type SafeParseSuccess<Output> = { success: true; data: Output };
-export type SafeParseError<Input> = { success: false; error: ZodError<Input> };
+export type SafeParseError<Input> = { success: false; error: ValidateError<Input> };
 
 export type SafeParseReturnType<Input, Output> =
   | SafeParseSuccess<Output>
   | SafeParseError<Input>;
 
-export abstract class ZodType<
+export abstract class ValidateType<
   Output = any,
   Def extends ZodTypeDef = ZodTypeDef,
   Input = Output
@@ -290,7 +283,7 @@ export abstract class ZodType<
       const result = check(val);
       const setError = () =>
         ctx.addIssue({
-          code: ZodIssueCode.custom,
+          code: ErrorCode.custom,
           ...getIssueProperties(val),
         });
       if (typeof Promise !== "undefined" && result instanceof Promise) {
@@ -314,15 +307,15 @@ export abstract class ZodType<
 
   refinement<RefinedOutput extends Output>(
     check: (arg: Output) => arg is RefinedOutput,
-    refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
   ): ZodEffects<this, RefinedOutput, Input>;
   refinement(
     check: (arg: Output) => boolean,
-    refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
   ): ZodEffects<this, Output, Input>;
   refinement(
     check: (arg: Output) => unknown,
-    refinementData: IssueData | ((arg: Output, ctx: RefinementCtx) => IssueData)
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
   ): ZodEffects<this, Output, Input> {
     return this._refinement((val, ctx) => {
       if (!check(val)) {
@@ -389,11 +382,11 @@ export abstract class ZodType<
     return ZodPromise.create(this);
   }
 
-  or<T extends ZodTypeAny>(option: T): ZodUnion<[this, T]> {
+  or<T extends ValidateAnyType>(option: T): ZodUnion<[this, T]> {
     return ZodUnion.create([this, option]) as any;
   }
 
-  and<T extends ZodTypeAny>(incoming: T): ZodIntersection<this, T> {
+  and<T extends ValidateAnyType>(incoming: T): ZodIntersection<this, T> {
     return ZodIntersection.create(this, incoming);
   }
 
@@ -477,7 +470,7 @@ const uuidRegex =
 const emailRegex =
   /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 
-export class ZodString extends ZodType<string, ZodStringDef> {
+export class ZodString extends ValidateType<string, ZodStringDef> {
   _parse(input: ParseInput): ParseReturnType<string> {
     const parsedType = this._getType(input);
 
@@ -486,7 +479,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
       addIssueToContext(
         ctx,
         {
-          code: ZodIssueCode.invalid_type,
+          code: ErrorCode.invalid_type,
           expected: ZodParsedType.string,
           received: ctx.parsedType,
         }
@@ -503,7 +496,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
         if (input.data.length < check.value) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_small,
+            code: ErrorCode.too_small,
             minimum: check.value,
             type: "string",
             inclusive: true,
@@ -515,7 +508,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
         if (input.data.length > check.value) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_big,
+            code: ErrorCode.too_big,
             maximum: check.value,
             type: "string",
             inclusive: true,
@@ -528,7 +521,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
             validation: "email",
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             message: check.message,
           });
           status.dirty();
@@ -538,7 +531,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
             validation: "uuid",
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             message: check.message,
           });
           status.dirty();
@@ -548,7 +541,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
             validation: "cuid",
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             message: check.message,
           });
           status.dirty();
@@ -560,7 +553,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
             validation: "url",
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             message: check.message,
           });
           status.dirty();
@@ -572,7 +565,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
             validation: "regex",
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             message: check.message,
           });
           status.dirty();
@@ -583,7 +576,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
         if (!(input.data as string).startsWith(check.value)) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             validation: { startsWith: check.value },
             message: check.message,
           });
@@ -593,7 +586,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
         if (!(input.data as string).endsWith(check.value)) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_string,
+            code: ErrorCode.invalid_string,
             validation: { endsWith: check.value },
             message: check.message,
           });
@@ -614,7 +607,7 @@ export class ZodString extends ZodType<string, ZodStringDef> {
   ) =>
     this.refinement((data) => regex.test(data), {
       validation,
-      code: ZodIssueCode.invalid_string,
+      code: ErrorCode.invalid_string,
       ...errorUtil.errToObj(message),
     });
 
@@ -762,13 +755,13 @@ export interface ZodNumberDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodNumber;
 }
 
-export class ZodNumber extends ZodType<number, ZodNumberDef> {
+export class ZodNumber extends ValidateType<number, ZodNumberDef> {
   _parse(input: ParseInput): ParseReturnType<number> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.number) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.number,
         received: ctx.parsedType,
       });
@@ -783,7 +776,7 @@ export class ZodNumber extends ZodType<number, ZodNumberDef> {
         if (!util.isInteger(input.data)) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.invalid_type,
+            code: ErrorCode.invalid_type,
             expected: "integer",
             received: "float",
             message: check.message,
@@ -797,7 +790,7 @@ export class ZodNumber extends ZodType<number, ZodNumberDef> {
         if (tooSmall) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_small,
+            code: ErrorCode.too_small,
             minimum: check.value,
             type: "number",
             inclusive: check.inclusive,
@@ -812,7 +805,7 @@ export class ZodNumber extends ZodType<number, ZodNumberDef> {
         if (tooBig) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_big,
+            code: ErrorCode.too_big,
             maximum: check.value,
             type: "number",
             inclusive: check.inclusive,
@@ -824,7 +817,7 @@ export class ZodNumber extends ZodType<number, ZodNumberDef> {
         if (floatSafeRemainder(input.data, check.value) !== 0) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.not_multiple_of,
+            code: ErrorCode.not_multiple_of,
             multipleOf: check.value,
             message: check.message,
           });
@@ -981,13 +974,13 @@ export interface ZodBigIntDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodBigInt;
 }
 
-export class ZodBigInt extends ZodType<bigint, ZodBigIntDef> {
+export class ZodBigInt extends ValidateType<bigint, ZodBigIntDef> {
   _parse(input: ParseInput): ParseReturnType<bigint> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.bigint) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.bigint,
         received: ctx.parsedType,
       });
@@ -1015,13 +1008,13 @@ export interface ZodBooleanDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodBoolean;
 }
 
-export class ZodBoolean extends ZodType<boolean, ZodBooleanDef> {
+export class ZodBoolean extends ValidateType<boolean, ZodBooleanDef> {
   _parse(input: ParseInput): ParseReturnType<boolean> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.boolean) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.boolean,
         received: ctx.parsedType,
       });
@@ -1053,14 +1046,14 @@ export interface ZodDateDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodDate;
 }
 
-export class ZodDate extends ZodType<Date, ZodDateDef> {
+export class ZodDate extends ValidateType<Date, ZodDateDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
 
     if (parsedType !== ZodParsedType.date) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.date,
         received: ctx.parsedType,
       });
@@ -1070,7 +1063,7 @@ export class ZodDate extends ZodType<Date, ZodDateDef> {
     if (isNaN(input.data.getTime())) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_date,
+        code: ErrorCode.invalid_date,
       });
       return INVALID;
     }
@@ -1083,7 +1076,7 @@ export class ZodDate extends ZodType<Date, ZodDateDef> {
         if (input.data.getTime() < check.value) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_small,
+            code: ErrorCode.too_small,
             message: check.message,
             inclusive: true,
             minimum: check.value,
@@ -1095,7 +1088,7 @@ export class ZodDate extends ZodType<Date, ZodDateDef> {
         if (input.data.getTime() > check.value) {
           ctx = this._getOrReturnCtx(input, ctx);
           addIssueToContext(ctx, {
-            code: ZodIssueCode.too_big,
+            code: ErrorCode.too_big,
             message: check.message,
             inclusive: true,
             maximum: check.value,
@@ -1179,13 +1172,13 @@ export interface ZodUndefinedDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodUndefined;
 }
 
-export class ZodUndefined extends ZodType<undefined, ZodUndefinedDef> {
+export class ZodUndefined extends ValidateType<undefined, ZodUndefinedDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.undefined) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.undefined,
         received: ctx.parsedType,
       });
@@ -1214,13 +1207,13 @@ export interface ZodNullDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodNull;
 }
 
-export class ZodNull extends ZodType<null, ZodNullDef> {
+export class ZodNull extends ValidateType<null, ZodNullDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.null) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.null,
         received: ctx.parsedType,
       });
@@ -1247,7 +1240,7 @@ export interface ZodAnyDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodAny;
 }
 
-export class ZodAny extends ZodType<any, ZodAnyDef> {
+export class ZodAny extends ValidateType<any, ZodAnyDef> {
   // to prevent instances of other classes from extending ZodAny. this causes issues with catchall in ZodObject.
   _any: true = true;
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
@@ -1272,7 +1265,7 @@ export interface ZodUnknownDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodUnknown;
 }
 
-export class ZodUnknown extends ZodType<unknown, ZodUnknownDef> {
+export class ZodUnknown extends ValidateType<unknown, ZodUnknownDef> {
   // required
   _unknown: true = true;
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
@@ -1298,11 +1291,11 @@ export interface ZodNeverDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodNever;
 }
 
-export class ZodNever extends ZodType<never, ZodNeverDef> {
+export class ZodNever extends ValidateType<never, ZodNeverDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const ctx = this._getOrReturnCtx(input);
     addIssueToContext(ctx, {
-      code: ZodIssueCode.invalid_type,
+      code: ErrorCode.invalid_type,
       expected: ZodParsedType.never,
       received: ctx.parsedType,
     });
@@ -1327,13 +1320,13 @@ export interface ZodVoidDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodVoid;
 }
 
-export class ZodVoid extends ZodType<void, ZodVoidDef> {
+export class ZodVoid extends ValidateType<void, ZodVoidDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.undefined) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.void,
         received: ctx.parsedType,
       });
@@ -1357,7 +1350,7 @@ export class ZodVoid extends ZodType<void, ZodVoidDef> {
 //////////                    //////////
 ////////////////////////////////////////
 ////////////////////////////////////////
-export interface ZodArrayDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodArrayDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   type: T;
   typeName: ZodFirstPartyTypeKind.ZodArray;
@@ -1367,16 +1360,16 @@ export interface ZodArrayDef<T extends ZodTypeAny = ZodTypeAny>
 
 export type ArrayCardinality = "many" | "atleastone";
 type arrayOutputType<
-  T extends ZodTypeAny,
+  T extends ValidateAnyType,
   Cardinality extends ArrayCardinality = "many"
 > = Cardinality extends "atleastone"
   ? [T["_output"], ...T["_output"][]]
   : T["_output"][];
 
 export class ZodArray<
-  T extends ZodTypeAny,
+  T extends ValidateAnyType,
   Cardinality extends ArrayCardinality = "many"
-> extends ZodType<
+> extends ValidateType<
   arrayOutputType<T, Cardinality>,
   ZodArrayDef<T>,
   Cardinality extends "atleastone"
@@ -1390,7 +1383,7 @@ export class ZodArray<
 
     if (ctx.parsedType !== ZodParsedType.array) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.array,
         received: ctx.parsedType,
       });
@@ -1400,7 +1393,7 @@ export class ZodArray<
     if (def.minLength !== null) {
       if (ctx.data.length < def.minLength.value) {
         addIssueToContext(ctx, {
-          code: ZodIssueCode.too_small,
+          code: ErrorCode.too_small,
           minimum: def.minLength.value,
           type: "array",
           inclusive: true,
@@ -1413,7 +1406,7 @@ export class ZodArray<
     if (def.maxLength !== null) {
       if (ctx.data.length > def.maxLength.value) {
         addIssueToContext(ctx, {
-          code: ZodIssueCode.too_big,
+          code: ErrorCode.too_big,
           maximum: def.maxLength.value,
           type: "array",
           inclusive: true,
@@ -1470,7 +1463,7 @@ export class ZodArray<
     return this.min(1, message) as any;
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     schema: T,
     params?: RawCreateParams
   ): ZodArray<T> => {
@@ -1484,7 +1477,7 @@ export class ZodArray<
   };
 }
 
-export type ZodNonEmptyArray<T extends ZodTypeAny> = ZodArray<T, "atleastone">;
+export type ZodNonEmptyArray<T extends ValidateAnyType> = ZodArray<T, "atleastone">;
 
 /////////////////////////////////////////
 /////////////////////////////////////////
@@ -1495,7 +1488,7 @@ export type ZodNonEmptyArray<T extends ZodTypeAny> = ZodArray<T, "atleastone">;
 /////////////////////////////////////////
 
 export namespace objectUtil {
-  export type MergeShapes<U extends ZodRawShape, V extends ZodRawShape> = {
+  export type MergeShapes<U extends RawShape, V extends RawShape> = {
     [k in Exclude<keyof U, keyof V>]: U[k];
   } & V;
 
@@ -1515,15 +1508,15 @@ export namespace objectUtil {
   export type identity<T> = T;
   export type flatten<T extends object> = identity<{ [k in keyof T]: T[k] }>;
 
-  export type noNeverKeys<T extends ZodRawShape> = {
+  export type noNeverKeys<T extends RawShape> = {
     [k in keyof T]: [T[k]] extends [never] ? never : k;
   }[keyof T];
 
-  export type noNever<T extends ZodRawShape> = identity<{
+  export type noNever<T extends RawShape> = identity<{
     [k in noNeverKeys<T>]: k extends keyof T ? T[k] : never;
   }>;
 
-  export const mergeShapes = <U extends ZodRawShape, T extends ZodRawShape>(
+  export const mergeShapes = <U extends RawShape, T extends RawShape>(
     first: U,
     second: T
   ): T & U => {
@@ -1538,7 +1531,7 @@ export type extendShape<A, B> = Omit<A, keyof B> & B;
 
 const AugmentFactory =
   <Def extends ZodObjectDef>(def: Def) =>
-  <Augmentation extends ZodRawShape>(
+  <Augmentation extends RawShape>(
     augmentation: Augmentation
   ): ZodObject<
     extendShape<ReturnType<Def["shape"]>, Augmentation>,
@@ -1557,9 +1550,9 @@ const AugmentFactory =
 type UnknownKeysParam = "passthrough" | "strict" | "strip";
 
 export interface ZodObjectDef<
-  T extends ZodRawShape = ZodRawShape,
+  T extends RawShape = RawShape,
   UnknownKeys extends UnknownKeysParam = UnknownKeysParam,
-  Catchall extends ZodTypeAny = ZodTypeAny
+  Catchall extends ValidateAnyType = ValidateAnyType
 > extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodObject;
   shape: () => T;
@@ -1567,7 +1560,7 @@ export interface ZodObjectDef<
   unknownKeys: UnknownKeys;
 }
 
-export type baseObjectOutputType<Shape extends ZodRawShape> =
+export type baseObjectOutputType<Shape extends RawShape> =
   objectUtil.flatten<
     objectUtil.addQuestionMarks<{
       [k in keyof Shape]: Shape[k]["_output"];
@@ -1575,42 +1568,42 @@ export type baseObjectOutputType<Shape extends ZodRawShape> =
   >;
 
 export type objectOutputType<
-  Shape extends ZodRawShape,
-  Catchall extends ZodTypeAny
-> = ZodTypeAny extends Catchall
+  Shape extends RawShape,
+  Catchall extends ValidateAnyType
+> = ValidateAnyType extends Catchall
   ? baseObjectOutputType<Shape>
   : objectUtil.flatten<
       baseObjectOutputType<Shape> & { [k: string]: Catchall["_output"] }
     >;
 
-export type baseObjectInputType<Shape extends ZodRawShape> = objectUtil.flatten<
+export type baseObjectInputType<Shape extends RawShape> = objectUtil.flatten<
   objectUtil.addQuestionMarks<{
     [k in keyof Shape]: Shape[k]["_input"];
   }>
 >;
 
 export type objectInputType<
-  Shape extends ZodRawShape,
-  Catchall extends ZodTypeAny
-> = ZodTypeAny extends Catchall
+  Shape extends RawShape,
+  Catchall extends ValidateAnyType
+> = ValidateAnyType extends Catchall
   ? baseObjectInputType<Shape>
   : objectUtil.flatten<
       baseObjectInputType<Shape> & { [k: string]: Catchall["_input"] }
     >;
 
-type deoptional<T extends ZodTypeAny> = T extends ZodOptional<infer U>
+type deoptional<T extends ValidateAnyType> = T extends ZodOptional<infer U>
   ? deoptional<U>
   : T;
 
 export type SomeZodObject = ZodObject<
-  ZodRawShape,
+  RawShape,
   UnknownKeysParam,
-  ZodTypeAny,
+  ValidateAnyType,
   any,
   any
 >;
 
-function deepPartialify(schema: ZodTypeAny): any {
+function deepPartialify(schema: ValidateAnyType): any {
   if (schema instanceof ZodObject) {
     const newShape: any = {};
 
@@ -1638,12 +1631,12 @@ function deepPartialify(schema: ZodTypeAny): any {
 }
 
 export class ZodObject<
-  T extends ZodRawShape,
+  T extends RawShape,
   UnknownKeys extends UnknownKeysParam = "strip",
-  Catchall extends ZodTypeAny = ZodTypeAny,
+  Catchall extends ValidateAnyType = ValidateAnyType,
   Output = objectOutputType<T, Catchall>,
   Input = objectInputType<T, Catchall>
-> extends ZodType<Output, ZodObjectDef<T, UnknownKeys, Catchall>, Input> {
+> extends ValidateType<Output, ZodObjectDef<T, UnknownKeys, Catchall>, Input> {
   private _cached: { shape: T; keys: string[] } | null = null;
 
   _getCached(): { shape: T; keys: string[] } {
@@ -1658,7 +1651,7 @@ export class ZodObject<
     if (parsedType !== ZodParsedType.object) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.object,
         received: ctx.parsedType,
       });
@@ -1713,7 +1706,7 @@ export class ZodObject<
       } else if (unknownKeys === "strict") {
         if (extraKeys.length > 0) {
           addIssueToContext(ctx, {
-            code: ZodIssueCode.unrecognized_keys,
+            code: ErrorCode.unrecognized_keys,
             keys: extraKeys,
           });
           status.dirty();
@@ -1810,7 +1803,7 @@ export class ZodObject<
   augment = AugmentFactory<ZodObjectDef<T, UnknownKeys, Catchall>>(this._def);
   extend = AugmentFactory<ZodObjectDef<T, UnknownKeys, Catchall>>(this._def);
 
-  setKey<Key extends string, Schema extends ZodTypeAny>(
+  setKey<Key extends string, Schema extends ValidateAnyType>(
     key: Key,
     schema: Schema
   ): ZodObject<T & { [k in Key]: Schema }, UnknownKeys, Catchall> {
@@ -1844,7 +1837,7 @@ export class ZodObject<
     return merged;
   }
 
-  catchall<Index extends ZodTypeAny>(
+  catchall<Index extends ValidateAnyType>(
     index: Index
   ): ZodObject<T, UnknownKeys, Index> {
     return new ZodObject({
@@ -1979,7 +1972,7 @@ export class ZodObject<
     ) as any;
   }
 
-  static create = <T extends ZodRawShape>(
+  static create = <T extends RawShape>(
     shape: T,
     params?: RawCreateParams
   ): ZodObject<T> => {
@@ -1992,7 +1985,7 @@ export class ZodObject<
     }) as any;
   };
 
-  static strictCreate = <T extends ZodRawShape>(
+  static strictCreate = <T extends RawShape>(
     shape: T,
     params?: RawCreateParams
   ): ZodObject<T, "strict"> => {
@@ -2005,7 +1998,7 @@ export class ZodObject<
     }) as any;
   };
 
-  static lazycreate = <T extends ZodRawShape>(
+  static lazycreate = <T extends RawShape>(
     shape: () => T,
     params?: RawCreateParams
   ): ZodObject<T> => {
@@ -2028,17 +2021,17 @@ export type AnyZodObject = ZodObject<any, any, any>;
 //////////                    //////////
 ////////////////////////////////////////
 ////////////////////////////////////////
-type ZodUnionOptions = Readonly<[ZodTypeAny, ...ZodTypeAny[]]>;
+type ZodUnionOptions = Readonly<[ValidateAnyType, ...ValidateAnyType[]]>;
 export interface ZodUnionDef<
   T extends ZodUnionOptions = Readonly<
-    [ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]
+    [ValidateAnyType, ValidateAnyType, ...ValidateAnyType[]]
   >
 > extends ZodTypeDef {
   options: T;
   typeName: ZodFirstPartyTypeKind.ZodUnion;
 }
 
-export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
+export class ZodUnion<T extends ZodUnionOptions> extends ValidateType<
   T[number]["_output"],
   ZodUnionDef<T>,
   T[number]["_input"]
@@ -2068,11 +2061,11 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
 
       // return invalid
       const unionErrors = results.map(
-        (result) => new ZodError(result.ctx.common.issues)
+        (result) => new ValidateError(result.ctx.common.issues)
       );
 
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_union,
+        code: ErrorCode.invalid_union,
         unionErrors,
       });
       return INVALID;
@@ -2102,7 +2095,7 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
     } else {
       let dirty: undefined | { result: DIRTY<any>; ctx: ParseContext } =
         undefined;
-      const issues: ZodIssue[][] = [];
+      const issues: Issue[][] = [];
       for (const option of options) {
         const childCtx: ParseContext = {
           ...ctx,
@@ -2134,9 +2127,9 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
         return dirty.result;
       }
 
-      const unionErrors = issues.map((issues) => new ZodError(issues));
+      const unionErrors = issues.map((issues) => new ValidateError(issues));
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_union,
+        code: ErrorCode.invalid_union,
         unionErrors,
       });
 
@@ -2149,7 +2142,7 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
   }
 
   static create = <
-    T extends Readonly<[ZodTypeAny, ZodTypeAny, ...ZodTypeAny[]]>
+    T extends Readonly<[ValidateAnyType, ValidateAnyType, ...ValidateAnyType[]]>
   >(
     types: T,
     params?: RawCreateParams
@@ -2174,7 +2167,7 @@ export type ZodDiscriminatedUnionOption<
   Discriminator extends string,
   DiscriminatorValue extends Primitive
 > = ZodObject<
-  { [key in Discriminator]: ZodLiteral<DiscriminatorValue> } & ZodRawShape,
+  { [key in Discriminator]: ZodLiteral<DiscriminatorValue> } & RawShape,
   any,
   any
 >;
@@ -2193,7 +2186,7 @@ export class ZodDiscriminatedUnion<
   Discriminator extends string,
   DiscriminatorValue extends Primitive,
   Option extends ZodDiscriminatedUnionOption<Discriminator, DiscriminatorValue>
-> extends ZodType<
+> extends ValidateType<
   Option["_output"],
   ZodDiscriminatedUnionDef<Discriminator, DiscriminatorValue, Option>,
   Option["_input"]
@@ -2203,7 +2196,7 @@ export class ZodDiscriminatedUnion<
 
     if (ctx.parsedType !== ZodParsedType.object) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.object,
         received: ctx.parsedType,
       });
@@ -2216,7 +2209,7 @@ export class ZodDiscriminatedUnion<
 
     if (!option) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_union_discriminator,
+        code: ErrorCode.invalid_union_discriminator,
         options: this.validDiscriminatorValues,
         path: [discriminator],
       });
@@ -2311,8 +2304,8 @@ export class ZodDiscriminatedUnion<
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 export interface ZodIntersectionDef<
-  T extends ZodTypeAny = ZodTypeAny,
-  U extends ZodTypeAny = ZodTypeAny
+  T extends ValidateAnyType = ValidateAnyType,
+  U extends ValidateAnyType = ValidateAnyType
 > extends ZodTypeDef {
   left: T;
   right: U;
@@ -2375,9 +2368,9 @@ function mergeValues(
 }
 
 export class ZodIntersection<
-  T extends ZodTypeAny,
-  U extends ZodTypeAny
-> extends ZodType<
+  T extends ValidateAnyType,
+  U extends ValidateAnyType
+> extends ValidateType<
   T["_output"] & U["_output"],
   ZodIntersectionDef<T, U>,
   T["_input"] & U["_input"]
@@ -2396,7 +2389,7 @@ export class ZodIntersection<
 
       if (!merged.valid) {
         addIssueToContext(ctx, {
-          code: ZodIssueCode.invalid_intersection_types,
+          code: ErrorCode.invalid_intersection_types,
         });
         return INVALID;
       }
@@ -2437,7 +2430,7 @@ export class ZodIntersection<
     }
   }
 
-  static create = <T extends ZodTypeAny, U extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType, U extends ValidateAnyType>(
     left: T,
     right: U,
     params?: RawCreateParams
@@ -2458,31 +2451,31 @@ export class ZodIntersection<
 //////////                    //////////
 ////////////////////////////////////////
 ////////////////////////////////////////
-export type ZodTupleItems = [ZodTypeAny, ...ZodTypeAny[]];
+export type ZodTupleItems = [ValidateAnyType, ...ValidateAnyType[]];
 export type AssertArray<T> = T extends any[] ? T : never;
 export type OutputTypeOfTuple<T extends ZodTupleItems | []> = AssertArray<{
-  [k in keyof T]: T[k] extends ZodType<any, any> ? T[k]["_output"] : never;
+  [k in keyof T]: T[k] extends ValidateType<any, any> ? T[k]["_output"] : never;
 }>;
 export type OutputTypeOfTupleWithRest<
   T extends ZodTupleItems | [],
-  Rest extends ZodTypeAny | null = null
-> = Rest extends ZodTypeAny
+  Rest extends ValidateAnyType | null = null
+> = Rest extends ValidateAnyType
   ? [...OutputTypeOfTuple<T>, ...Rest["_output"][]]
   : OutputTypeOfTuple<T>;
 
 export type InputTypeOfTuple<T extends ZodTupleItems | []> = AssertArray<{
-  [k in keyof T]: T[k] extends ZodType<any, any> ? T[k]["_input"] : never;
+  [k in keyof T]: T[k] extends ValidateType<any, any> ? T[k]["_input"] : never;
 }>;
 export type InputTypeOfTupleWithRest<
   T extends ZodTupleItems | [],
-  Rest extends ZodTypeAny | null = null
-> = Rest extends ZodTypeAny
+  Rest extends ValidateAnyType | null = null
+> = Rest extends ValidateAnyType
   ? [...InputTypeOfTuple<T>, ...Rest["_input"][]]
   : InputTypeOfTuple<T>;
 
 export interface ZodTupleDef<
   T extends ZodTupleItems | [] = ZodTupleItems,
-  Rest extends ZodTypeAny | null = null
+  Rest extends ValidateAnyType | null = null
 > extends ZodTypeDef {
   items: T;
   rest: Rest;
@@ -2490,13 +2483,13 @@ export interface ZodTupleDef<
 }
 
 export type AnyZodTuple = ZodTuple<
-  [ZodTypeAny, ...ZodTypeAny[]] | [],
-  ZodTypeAny | null
+  [ValidateAnyType, ...ValidateAnyType[]] | [],
+  ValidateAnyType | null
 >;
 export class ZodTuple<
-  T extends [ZodTypeAny, ...ZodTypeAny[]] | [] = [ZodTypeAny, ...ZodTypeAny[]],
-  Rest extends ZodTypeAny | null = null
-> extends ZodType<
+  T extends [ValidateAnyType, ...ValidateAnyType[]] | [] = [ValidateAnyType, ...ValidateAnyType[]],
+  Rest extends ValidateAnyType | null = null
+> extends ValidateType<
   OutputTypeOfTupleWithRest<T, Rest>,
   ZodTupleDef<T, Rest>,
   InputTypeOfTupleWithRest<T, Rest>
@@ -2505,7 +2498,7 @@ export class ZodTuple<
     const { status, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.array) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.array,
         received: ctx.parsedType,
       });
@@ -2514,7 +2507,7 @@ export class ZodTuple<
 
     if (ctx.data.length < this._def.items.length) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.too_small,
+        code: ErrorCode.too_small,
         minimum: this._def.items.length,
         inclusive: true,
         type: "array",
@@ -2527,7 +2520,7 @@ export class ZodTuple<
 
     if (!rest && ctx.data.length > this._def.items.length) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.too_big,
+        code: ErrorCode.too_big,
         maximum: this._def.items.length,
         inclusive: true,
         type: "array",
@@ -2558,14 +2551,14 @@ export class ZodTuple<
     return this._def.items;
   }
 
-  rest<Rest extends ZodTypeAny>(rest: Rest): ZodTuple<T, Rest> {
+  rest<Rest extends ValidateAnyType>(rest: Rest): ZodTuple<T, Rest> {
     return new ZodTuple({
       ...this._def,
       rest,
     });
   }
 
-  static create = <T extends [ZodTypeAny, ...ZodTypeAny[]] | []>(
+  static create = <T extends [ValidateAnyType, ...ValidateAnyType[]] | []>(
     schemas: T,
     params?: RawCreateParams
   ): ZodTuple<T, null> => {
@@ -2590,14 +2583,14 @@ export class ZodTuple<
 /////////////////////////////////////////
 export interface ZodRecordDef<
   Key extends KeySchema = ZodString,
-  Value extends ZodTypeAny = ZodTypeAny
+  Value extends ValidateAnyType = ValidateAnyType
 > extends ZodTypeDef {
   valueType: Value;
   keyType: Key;
   typeName: ZodFirstPartyTypeKind.ZodRecord;
 }
 
-type KeySchema = ZodType<string | number | symbol, any, any>;
+type KeySchema = ValidateType<string | number | symbol, any, any>;
 type RecordType<K extends string | number | symbol, V> = [string] extends [K]
   ? Record<K, V>
   : [number] extends [K]
@@ -2607,8 +2600,8 @@ type RecordType<K extends string | number | symbol, V> = [string] extends [K]
   : Partial<Record<K, V>>;
 export class ZodRecord<
   Key extends KeySchema = ZodString,
-  Value extends ZodTypeAny = ZodTypeAny
-> extends ZodType<
+  Value extends ValidateAnyType = ValidateAnyType
+> extends ValidateType<
   RecordType<Key["_output"], Value["_output"]>,
   ZodRecordDef<Key, Value>,
   RecordType<Key["_input"], Value["_input"]>
@@ -2623,7 +2616,7 @@ export class ZodRecord<
     const { status, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.object) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.object,
         received: ctx.parsedType,
       });
@@ -2658,17 +2651,17 @@ export class ZodRecord<
     return this._def.valueType;
   }
 
-  static create<Value extends ZodTypeAny>(
+  static create<Value extends ValidateAnyType>(
     valueType: Value,
     params?: RawCreateParams
   ): ZodRecord<ZodString, Value>;
-  static create<Keys extends KeySchema, Value extends ZodTypeAny>(
+  static create<Keys extends KeySchema, Value extends ValidateAnyType>(
     keySchema: Keys,
     valueType: Value,
     params?: RawCreateParams
   ): ZodRecord<Keys, Value>;
   static create(first: any, second?: any, third?: any): ZodRecord<any, any> {
-    if (second instanceof ZodType) {
+    if (second instanceof ValidateType) {
       return new ZodRecord({
         keyType: first,
         valueType: second,
@@ -2694,8 +2687,8 @@ export class ZodRecord<
 //////////////////////////////////////
 //////////////////////////////////////
 export interface ZodMapDef<
-  Key extends ZodTypeAny = ZodTypeAny,
-  Value extends ZodTypeAny = ZodTypeAny
+  Key extends ValidateAnyType = ValidateAnyType,
+  Value extends ValidateAnyType = ValidateAnyType
 > extends ZodTypeDef {
   valueType: Value;
   keyType: Key;
@@ -2703,9 +2696,9 @@ export interface ZodMapDef<
 }
 
 export class ZodMap<
-  Key extends ZodTypeAny = ZodTypeAny,
-  Value extends ZodTypeAny = ZodTypeAny
-> extends ZodType<
+  Key extends ValidateAnyType = ValidateAnyType,
+  Value extends ValidateAnyType = ValidateAnyType
+> extends ValidateType<
   Map<Key["_output"], Value["_output"]>,
   ZodMapDef<Key, Value>,
   Map<Key["_input"], Value["_input"]>
@@ -2714,7 +2707,7 @@ export class ZodMap<
     const { status, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.map) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.map,
         received: ctx.parsedType,
       });
@@ -2772,8 +2765,8 @@ export class ZodMap<
     }
   }
   static create = <
-    Key extends ZodTypeAny = ZodTypeAny,
-    Value extends ZodTypeAny = ZodTypeAny
+    Key extends ValidateAnyType = ValidateAnyType,
+    Value extends ValidateAnyType = ValidateAnyType
   >(
     keyType: Key,
     valueType: Value,
@@ -2795,7 +2788,7 @@ export class ZodMap<
 //////////                  //////////
 //////////////////////////////////////
 //////////////////////////////////////
-export interface ZodSetDef<Value extends ZodTypeAny = ZodTypeAny>
+export interface ZodSetDef<Value extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   valueType: Value;
   typeName: ZodFirstPartyTypeKind.ZodSet;
@@ -2803,7 +2796,7 @@ export interface ZodSetDef<Value extends ZodTypeAny = ZodTypeAny>
   maxSize: { value: number; message?: string } | null;
 }
 
-export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
+export class ZodSet<Value extends ValidateAnyType = ValidateAnyType> extends ValidateType<
   Set<Value["_output"]>,
   ZodSetDef<Value>,
   Set<Value["_input"]>
@@ -2812,7 +2805,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
     const { status, ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.set) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.set,
         received: ctx.parsedType,
       });
@@ -2824,7 +2817,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
     if (def.minSize !== null) {
       if (ctx.data.size < def.minSize.value) {
         addIssueToContext(ctx, {
-          code: ZodIssueCode.too_small,
+          code: ErrorCode.too_small,
           minimum: def.minSize.value,
           type: "set",
           inclusive: true,
@@ -2837,7 +2830,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
     if (def.maxSize !== null) {
       if (ctx.data.size > def.maxSize.value) {
         addIssueToContext(ctx, {
-          code: ZodIssueCode.too_big,
+          code: ErrorCode.too_big,
           maximum: def.maxSize.value,
           type: "set",
           inclusive: true,
@@ -2892,7 +2885,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
     return this.min(1, message) as any;
   }
 
-  static create = <Value extends ZodTypeAny = ZodTypeAny>(
+  static create = <Value extends ValidateAnyType = ValidateAnyType>(
     valueType: Value,
     params?: RawCreateParams
   ): ZodSet<Value> => {
@@ -2915,7 +2908,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
 ///////////////////////////////////////////
 export interface ZodFunctionDef<
   Args extends ZodTuple<any, any> = ZodTuple<any, any>,
-  Returns extends ZodTypeAny = ZodTypeAny
+  Returns extends ValidateAnyType = ValidateAnyType
 > extends ZodTypeDef {
   args: Args;
   returns: Returns;
@@ -2924,22 +2917,22 @@ export interface ZodFunctionDef<
 
 export type OuterTypeOfFunction<
   Args extends ZodTuple<any, any>,
-  Returns extends ZodTypeAny
+  Returns extends ValidateAnyType
 > = Args["_input"] extends Array<any>
   ? (...args: Args["_input"]) => Returns["_output"]
   : never;
 
 export type InnerTypeOfFunction<
   Args extends ZodTuple<any, any>,
-  Returns extends ZodTypeAny
+  Returns extends ValidateAnyType
 > = Args["_output"] extends Array<any>
   ? (...args: Args["_output"]) => Returns["_input"]
   : never;
 
 export class ZodFunction<
   Args extends ZodTuple<any, any>,
-  Returns extends ZodTypeAny
-> extends ZodType<
+  Returns extends ValidateAnyType
+> extends ValidateType<
   OuterTypeOfFunction<Args, Returns>,
   ZodFunctionDef<Args, Returns>,
   InnerTypeOfFunction<Args, Returns>
@@ -2948,14 +2941,14 @@ export class ZodFunction<
     const { ctx } = this._processInputParams(input);
     if (ctx.parsedType !== ZodParsedType.function) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.function,
         received: ctx.parsedType,
       });
       return INVALID;
     }
 
-    function makeArgsIssue(args: any, error: ZodError): ZodIssue {
+    function makeArgsIssue(args: any, error: ValidateError): Issue {
       return makeIssue({
         data: args,
         path: ctx.path,
@@ -2966,13 +2959,13 @@ export class ZodFunction<
           defaultErrorMap,
         ].filter((x) => !!x) as ZodErrorMap[],
         issueData: {
-          code: ZodIssueCode.invalid_arguments,
+          code: ErrorCode.invalid_arguments,
           argumentsError: error,
         },
       });
     }
 
-    function makeReturnsIssue(returns: any, error: ZodError): ZodIssue {
+    function makeReturnsIssue(returns: any, error: ValidateError): Issue {
       return makeIssue({
         data: returns,
         path: ctx.path,
@@ -2983,7 +2976,7 @@ export class ZodFunction<
           defaultErrorMap,
         ].filter((x) => !!x) as ZodErrorMap[],
         issueData: {
-          code: ZodIssueCode.invalid_return_type,
+          code: ErrorCode.invalid_return_type,
           returnTypeError: error,
         },
       });
@@ -2994,7 +2987,7 @@ export class ZodFunction<
 
     if (this._def.returns instanceof ZodPromise) {
       return OK(async (...args: any[]) => {
-        const error = new ZodError([]);
+        const error = new ValidateError([]);
         const parsedArgs = await this._def.args
           .parseAsync(args, params)
           .catch((e) => {
@@ -3003,7 +2996,7 @@ export class ZodFunction<
           });
         const result = await fn(...(parsedArgs as any));
         const parsedReturns = await (
-          this._def.returns as ZodPromise<ZodTypeAny>
+          this._def.returns as ZodPromise<ValidateAnyType>
         )._def.type
           .parseAsync(result, params)
           .catch((e) => {
@@ -3016,12 +3009,12 @@ export class ZodFunction<
       return OK((...args: any[]) => {
         const parsedArgs = this._def.args.safeParse(args, params);
         if (!parsedArgs.success) {
-          throw new ZodError([makeArgsIssue(args, parsedArgs.error)]);
+          throw new ValidateError([makeArgsIssue(args, parsedArgs.error)]);
         }
         const result = fn(...(parsedArgs.data as any));
         const parsedReturns = this._def.returns.safeParse(result, params);
         if (!parsedReturns.success) {
-          throw new ZodError([makeReturnsIssue(result, parsedReturns.error)]);
+          throw new ValidateError([makeReturnsIssue(result, parsedReturns.error)]);
         }
         return parsedReturns.data;
       }) as any;
@@ -3045,7 +3038,7 @@ export class ZodFunction<
     });
   }
 
-  returns<NewReturnType extends ZodType<any, any>>(
+  returns<NewReturnType extends ValidateType<any, any>>(
     returnType: NewReturnType
   ): ZodFunction<Args, NewReturnType> {
     return new ZodFunction({
@@ -3076,17 +3069,17 @@ export class ZodFunction<
   static create<T extends AnyZodTuple = ZodTuple<[], ZodUnknown>>(
     args: T
   ): ZodFunction<T, ZodUnknown>;
-  static create<T extends AnyZodTuple, U extends ZodTypeAny>(
+  static create<T extends AnyZodTuple, U extends ValidateAnyType>(
     args: T,
     returns: U
   ): ZodFunction<T, U>;
   static create<
     T extends AnyZodTuple = ZodTuple<[], ZodUnknown>,
-    U extends ZodTypeAny = ZodUnknown
+    U extends ValidateAnyType = ZodUnknown
   >(args: T, returns: U, params?: RawCreateParams): ZodFunction<T, U>;
   static create(
     args?: AnyZodTuple,
-    returns?: ZodTypeAny,
+    returns?: ValidateAnyType,
     params?: RawCreateParams
   ) {
     return new ZodFunction({
@@ -3107,16 +3100,16 @@ export class ZodFunction<
 //////////                   //////////
 ///////////////////////////////////////
 ///////////////////////////////////////
-export interface ZodLazyDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodLazyDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   getter: () => T;
   typeName: ZodFirstPartyTypeKind.ZodLazy;
 }
 
-export class ZodLazy<T extends ZodTypeAny> extends ZodType<
-  output<T>,
+export class ZodLazy<T extends ValidateAnyType> extends ValidateType<
+  Output<T>,
   ZodLazyDef<T>,
-  input<T>
+  Input<T>
 > {
   get schema(): T {
     return this._def.getter();
@@ -3128,7 +3121,7 @@ export class ZodLazy<T extends ZodTypeAny> extends ZodType<
     return lazySchema._parse({ data: ctx.data, path: ctx.path, parent: ctx });
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     getter: () => T,
     params?: RawCreateParams
   ): ZodLazy<T> => {
@@ -3152,12 +3145,12 @@ export interface ZodLiteralDef<T = any> extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodLiteral;
 }
 
-export class ZodLiteral<T> extends ZodType<T, ZodLiteralDef<T>> {
+export class ZodLiteral<T> extends ValidateType<T, ZodLiteralDef<T>> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     if (input.data !== this._def.value) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_literal,
+        code: ErrorCode.invalid_literal,
         expected: this._def.value,
       });
       return INVALID;
@@ -3221,7 +3214,7 @@ function createZodEnum(values: any, params?: RawCreateParams) {
   }) as any;
 }
 
-export class ZodEnum<T extends [string, ...string[]]> extends ZodType<
+export class ZodEnum<T extends [string, ...string[]]> extends ValidateType<
   T[number],
   ZodEnumDef<T>
 > {
@@ -3232,7 +3225,7 @@ export class ZodEnum<T extends [string, ...string[]]> extends ZodType<
       addIssueToContext(ctx, {
         expected: util.joinValues(expectedValues) as "string",
         received: ctx.parsedType,
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
       });
       return INVALID;
     }
@@ -3243,7 +3236,7 @@ export class ZodEnum<T extends [string, ...string[]]> extends ZodType<
 
       addIssueToContext(ctx, {
         received: ctx.data,
-        code: ZodIssueCode.invalid_enum_value,
+        code: ErrorCode.invalid_enum_value,
         options: expectedValues,
       });
       return INVALID;
@@ -3297,7 +3290,7 @@ export interface ZodNativeEnumDef<T extends EnumLike = EnumLike>
 
 type EnumLike = { [k: string]: string | number; [nu: number]: string };
 
-export class ZodNativeEnum<T extends EnumLike> extends ZodType<
+export class ZodNativeEnum<T extends EnumLike> extends ValidateType<
   T[keyof T],
   ZodNativeEnumDef<T>
 > {
@@ -3313,7 +3306,7 @@ export class ZodNativeEnum<T extends EnumLike> extends ZodType<
       addIssueToContext(ctx, {
         expected: util.joinValues(expectedValues) as "string",
         received: ctx.parsedType,
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
       });
       return INVALID;
     }
@@ -3323,7 +3316,7 @@ export class ZodNativeEnum<T extends EnumLike> extends ZodType<
 
       addIssueToContext(ctx, {
         received: ctx.data,
-        code: ZodIssueCode.invalid_enum_value,
+        code: ErrorCode.invalid_enum_value,
         options: expectedValues,
       });
       return INVALID;
@@ -3354,13 +3347,13 @@ export class ZodNativeEnum<T extends EnumLike> extends ZodType<
 //////////                      //////////
 //////////////////////////////////////////
 //////////////////////////////////////////
-export interface ZodPromiseDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodPromiseDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   type: T;
   typeName: ZodFirstPartyTypeKind.ZodPromise;
 }
 
-export class ZodPromise<T extends ZodTypeAny> extends ZodType<
+export class ZodPromise<T extends ValidateAnyType> extends ValidateType<
   Promise<T["_output"]>,
   ZodPromiseDef<T>,
   Promise<T["_input"]>
@@ -3372,7 +3365,7 @@ export class ZodPromise<T extends ZodTypeAny> extends ZodType<
       ctx.common.async === false
     ) {
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.promise,
         received: ctx.parsedType,
       });
@@ -3394,7 +3387,7 @@ export class ZodPromise<T extends ZodTypeAny> extends ZodType<
     );
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     schema: T,
     params?: RawCreateParams
   ): ZodPromise<T> => {
@@ -3434,7 +3427,7 @@ export type Effect<T> =
   | TransformEffect<T>
   | PreprocessEffect<T>;
 
-export interface ZodEffectsDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodEffectsDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   schema: T;
   typeName: ZodFirstPartyTypeKind.ZodEffects;
@@ -3442,10 +3435,10 @@ export interface ZodEffectsDef<T extends ZodTypeAny = ZodTypeAny>
 }
 
 export class ZodEffects<
-  T extends ZodTypeAny,
+  T extends ValidateAnyType,
   Output = T["_output"],
   Input = T["_input"]
-> extends ZodType<Output, ZodEffectsDef<T>, Input> {
+> extends ValidateType<Output, ZodEffectsDef<T>, Input> {
   innerType() {
     return this._def.schema;
   }
@@ -3476,7 +3469,7 @@ export class ZodEffects<
     }
 
     const checkCtx: RefinementCtx = {
-      addIssue: (arg: IssueData) => {
+      addIssue: (arg: ErrorData) => {
         addIssueToContext(ctx, arg);
         if (arg.fatal) {
           status.abort();
@@ -3573,7 +3566,7 @@ export class ZodEffects<
     util.assertNever(effect);
   }
 
-  static create = <I extends ZodTypeAny>(
+  static create = <I extends ValidateAnyType>(
     schema: I,
     effect: Effect<I["_output"]>,
     params?: RawCreateParams
@@ -3586,7 +3579,7 @@ export class ZodEffects<
     });
   };
 
-  static createWithPreprocess = <I extends ZodTypeAny>(
+  static createWithPreprocess = <I extends ValidateAnyType>(
     preprocess: (arg: unknown) => unknown,
     schema: I,
     params?: RawCreateParams
@@ -3609,15 +3602,15 @@ export { ZodEffects as ZodTransformer };
 //////////                       //////////
 ///////////////////////////////////////////
 ///////////////////////////////////////////
-export interface ZodOptionalDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodOptionalDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   innerType: T;
   typeName: ZodFirstPartyTypeKind.ZodOptional;
 }
 
-export type ZodOptionalType<T extends ZodTypeAny> = ZodOptional<T>;
+export type ZodOptionalType<T extends ValidateAnyType> = ZodOptional<T>;
 
-export class ZodOptional<T extends ZodTypeAny> extends ZodType<
+export class ZodOptional<T extends ValidateAnyType> extends ValidateType<
   T["_output"] | undefined,
   ZodOptionalDef<T>,
   T["_input"] | undefined
@@ -3634,7 +3627,7 @@ export class ZodOptional<T extends ZodTypeAny> extends ZodType<
     return this._def.innerType;
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     type: T,
     params?: RawCreateParams
   ): ZodOptional<T> => {
@@ -3653,15 +3646,15 @@ export class ZodOptional<T extends ZodTypeAny> extends ZodType<
 //////////                       //////////
 ///////////////////////////////////////////
 ///////////////////////////////////////////
-export interface ZodNullableDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodNullableDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   innerType: T;
   typeName: ZodFirstPartyTypeKind.ZodNullable;
 }
 
-export type ZodNullableType<T extends ZodTypeAny> = ZodNullable<T>;
+export type ZodNullableType<T extends ValidateAnyType> = ZodNullable<T>;
 
-export class ZodNullable<T extends ZodTypeAny> extends ZodType<
+export class ZodNullable<T extends ValidateAnyType> extends ValidateType<
   T["_output"] | null,
   ZodNullableDef<T>,
   T["_input"] | null
@@ -3678,7 +3671,7 @@ export class ZodNullable<T extends ZodTypeAny> extends ZodType<
     return this._def.innerType;
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     type: T,
     params?: RawCreateParams
   ): ZodNullable<T> => {
@@ -3697,14 +3690,14 @@ export class ZodNullable<T extends ZodTypeAny> extends ZodType<
 //////////                        //////////
 ////////////////////////////////////////////
 ////////////////////////////////////////////
-export interface ZodDefaultDef<T extends ZodTypeAny = ZodTypeAny>
+export interface ZodDefaultDef<T extends ValidateAnyType = ValidateAnyType>
   extends ZodTypeDef {
   innerType: T;
   defaultValue: () => util.noUndefined<T["_input"]>;
   typeName: ZodFirstPartyTypeKind.ZodDefault;
 }
 
-export class ZodDefault<T extends ZodTypeAny> extends ZodType<
+export class ZodDefault<T extends ValidateAnyType> extends ValidateType<
   util.noUndefined<T["_output"]>,
   ZodDefaultDef<T>,
   T["_input"] | undefined
@@ -3726,7 +3719,7 @@ export class ZodDefault<T extends ZodTypeAny> extends ZodType<
     return this._def.innerType;
   }
 
-  static create = <T extends ZodTypeAny>(
+  static create = <T extends ValidateAnyType>(
     type: T,
     params?: RawCreateParams
   ): ZodOptional<T> => {
@@ -3750,13 +3743,13 @@ export interface ZodNaNDef extends ZodTypeDef {
   typeName: ZodFirstPartyTypeKind.ZodNaN;
 }
 
-export class ZodNaN extends ZodType<number, ZodNaNDef> {
+export class ZodNaN extends ValidateType<number, ZodNaNDef> {
   _parse(input: ParseInput): ParseReturnType<any> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.nan) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
-        code: ZodIssueCode.invalid_type,
+        code: ErrorCode.invalid_type,
         expected: ZodParsedType.nan,
         received: ctx.parsedType,
       });
@@ -3782,7 +3775,7 @@ export class ZodNaN extends ZodType<number, ZodNaNDef> {
 //////////////////////////////////////////
 //////////////////////////////////////////
 
-export interface ZodBrandedDef<T extends ZodTypeAny> extends ZodTypeDef {
+export interface ZodBrandedDef<T extends ValidateAnyType> extends ZodTypeDef {
   type: T;
   typeName: ZodFirstPartyTypeKind.ZodBranded;
 }
@@ -3793,9 +3786,9 @@ export type BRAND<T extends string | number | symbol> = {
 };
 
 export class ZodBranded<
-  T extends ZodTypeAny,
+  T extends ValidateAnyType,
   B extends string | number | symbol
-> extends ZodType<
+> extends ValidateType<
   T["_output"] & BRAND<B>,
   ZodBrandedDef<T>,
   T["_input"] & BRAND<B>
@@ -3817,9 +3810,9 @@ export class ZodBranded<
 
 export const custom = <T>(
   check?: (data: unknown) => any,
-  params: Parameters<ZodTypeAny["refine"]>[1] = {},
+  params: Parameters<ValidateAnyType["refine"]>[1] = {},
   fatal?: boolean
-): ZodType<T> => {
+): ValidateType<T> => {
   if (check)
     return ZodAny.create().superRefine((data, ctx) => {
       if (!check(data)) {
@@ -3831,7 +3824,7 @@ export const custom = <T>(
   return ZodAny.create();
 };
 
-export { ZodType as Schema, ZodType as ZodSchema };
+export { ValidateType as Schema, ValidateType as ZodSchema };
 
 export const late = {
   object: ZodObject.lazycreate,
@@ -3913,7 +3906,7 @@ export type ZodFirstPartySchemaTypes =
 // const instanceOfType = <T extends typeof Class>(
 const instanceOfType = <T extends new (...args: any[]) => any>(
   cls: T,
-  params: Parameters<ZodTypeAny["refine"]>[1] = {
+  params: Parameters<ValidateAnyType["refine"]>[1] = {
     message: `Input not instance of ${cls.name}`,
   }
 ) => custom<InstanceType<T>>((data) => data instanceof cls, params, true);

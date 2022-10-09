@@ -78,7 +78,7 @@ export const Immutable = () => {
 
         // var z = await objectSchema.validate(obj)
         // console.log(z)
-        const schema: z.ZodType<User> = z.object({
+        const schema: z.ValidateType<User> = z.object({
             username: z.string().min(2, 'min 5'),
             password: z.string().min(2, 'min 5')
         })

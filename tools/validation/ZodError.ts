@@ -1,21 +1,22 @@
-import type { TypeOf, ZodType } from ".";
+import type { TypeOf, ValidateType } from ".";
 import { Primitive } from "./helpers/typeAliases";
 import { util, ZodParsedType } from "./helpers/util";
 
-type allKeys<T> = T extends any ? keyof T : never;
+type AllKeys<T> = T extends any ? keyof T : never;
 
-export type inferFlattenedErrors<
-  T extends ZodType<any, any, any>,
+export type InferFlattenedErrors<
+  T extends ValidateType<any, any, any>,
   U = string
-> = typeToFlattenedError<TypeOf<T>, U>;
-export type typeToFlattenedError<T, U = string> = {
-  formErrors: U[];
-  fieldErrors: {
-    [P in allKeys<T>]?: U[];
-  };
-};
+> = ToFlattenedError<TypeOf<T>, U>
 
-export const ZodIssueCode = util.arrayToEnum([
+export type ToFlattenedError<T, U = string> = {
+  formErrors: U[]
+  fieldErrors: {
+    [P in AllKeys<T>]?: U[]
+  }
+}
+
+export const ErrorCode = util.arrayToEnum([
   "invalid_type",
   "invalid_literal",
   "custom",
@@ -33,57 +34,57 @@ export const ZodIssueCode = util.arrayToEnum([
   "not_multiple_of",
 ]);
 
-export type ZodIssueCode = keyof typeof ZodIssueCode;
+export type ErrorCode = keyof typeof ErrorCode
 
-export type ZodIssueBase = {
-  path: (string | number)[];
-  message?: string;
-};
+export type ErrorBase = {
+  path: (string | number)[]
+  message?: string
+}
 
-export interface ZodInvalidTypeIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_type;
+export interface InvalidType extends ErrorBase {
+  code: typeof ErrorCode.invalid_type;
   expected: ZodParsedType;
   received: ZodParsedType;
 }
 
-export interface ZodInvalidLiteralIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_literal;
+export interface InvalidLiteral extends ErrorBase {
+  code: typeof ErrorCode.invalid_literal;
   expected: unknown;
 }
 
-export interface ZodUnrecognizedKeysIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.unrecognized_keys;
+export interface UnrecognizedKeys extends ErrorBase {
+  code: typeof ErrorCode.unrecognized_keys;
   keys: string[];
 }
 
-export interface ZodInvalidUnionIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_union;
-  unionErrors: ZodError[];
+export interface InvalidUnion extends ErrorBase {
+  code: typeof ErrorCode.invalid_union;
+  unionErrors: ValidateError[];
 }
 
-export interface ZodInvalidUnionDiscriminatorIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_union_discriminator;
-  options: Primitive[];
+export interface InvalidUnionDiscriminator extends ErrorBase {
+  code: typeof ErrorCode.invalid_union_discriminator;
+  options: Primitive[]
 }
 
-export interface ZodInvalidEnumValueIssue extends ZodIssueBase {
+export interface InvalidEnum extends ErrorBase {
   received: string | number;
-  code: typeof ZodIssueCode.invalid_enum_value;
-  options: (string | number)[];
+  code: typeof ErrorCode.invalid_enum_value;
+  options: (string | number)[]
 }
 
-export interface ZodInvalidArgumentsIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_arguments;
-  argumentsError: ZodError;
+export interface InvalidArguments extends ErrorBase {
+  code: typeof ErrorCode.invalid_arguments;
+  argumentsError: ValidateError;
 }
 
-export interface ZodInvalidReturnTypeIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_return_type;
-  returnTypeError: ZodError;
+export interface InvalidReturnType extends ErrorBase {
+  code: typeof ErrorCode.invalid_return_type;
+  returnTypeError: ValidateError;
 }
 
-export interface ZodInvalidDateIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_date;
+export interface InvalidDate extends ErrorBase {
+  code: typeof ErrorCode.invalid_date;
 }
 
 export type StringValidation =
@@ -93,210 +94,203 @@ export type StringValidation =
   | "regex"
   | "cuid"
   | { startsWith: string }
-  | { endsWith: string };
+  | { endsWith: string }
 
-export interface ZodInvalidStringIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_string;
+export interface InvalidString extends ErrorBase {
+  code: typeof ErrorCode.invalid_string;
   validation: StringValidation;
 }
 
-export interface ZodTooSmallIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.too_small;
+export interface InvalidTooSmall extends ErrorBase {
+  code: typeof ErrorCode.too_small;
   minimum: number;
   inclusive: boolean;
-  type: "array" | "string" | "number" | "set" | "date";
+  type: "array" | "string" | "number" | "set" | "date"
 }
 
-export interface ZodTooBigIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.too_big;
-  maximum: number;
-  inclusive: boolean;
-  type: "array" | "string" | "number" | "set" | "date";
+export interface InvalidTooBig extends ErrorBase {
+  code: typeof ErrorCode.too_big
+  maximum: number
+  inclusive: boolean
+  type: "array" | "string" | "number" | "set" | "date"
 }
 
-export interface ZodInvalidIntersectionTypesIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.invalid_intersection_types;
+export interface InvalidIntersectionTypes extends ErrorBase {
+  code: typeof ErrorCode.invalid_intersection_types;
 }
 
-export interface ZodNotMultipleOfIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.not_multiple_of;
+export interface NotMultipleOf extends ErrorBase {
+  code: typeof ErrorCode.not_multiple_of;
   multipleOf: number;
 }
 
-export interface ZodCustomIssue extends ZodIssueBase {
-  code: typeof ZodIssueCode.custom;
-  params?: { [k: string]: any };
+export interface CustomError extends ErrorBase {
+  code: typeof ErrorCode.custom;
+  params?: { [k: string]: any }
 }
 
-export type DenormalizedError = { [k: string]: DenormalizedError | string[] };
+export type DenormalizedError = { [k: string]: DenormalizedError | string[] }
 
-export type ZodIssueOptionalMessage =
-  | ZodInvalidTypeIssue
-  | ZodInvalidLiteralIssue
-  | ZodUnrecognizedKeysIssue
-  | ZodInvalidUnionIssue
-  | ZodInvalidUnionDiscriminatorIssue
-  | ZodInvalidEnumValueIssue
-  | ZodInvalidArgumentsIssue
-  | ZodInvalidReturnTypeIssue
-  | ZodInvalidDateIssue
-  | ZodInvalidStringIssue
-  | ZodTooSmallIssue
-  | ZodTooBigIssue
-  | ZodInvalidIntersectionTypesIssue
-  | ZodNotMultipleOfIssue
-  | ZodCustomIssue;
+export type InvalidOptionalMessage =
+  | InvalidType
+  | InvalidLiteral
+  | UnrecognizedKeys
+  | InvalidUnion
+  | InvalidUnionDiscriminator
+  | InvalidEnum
+  | InvalidArguments
+  | InvalidReturnType
+  | InvalidDate
+  | InvalidString
+  | InvalidTooSmall
+  | InvalidTooBig
+  | InvalidIntersectionTypes
+  | NotMultipleOf
+  | CustomError;
 
-export type ZodIssue = ZodIssueOptionalMessage & { message: string };
+export type Issue = InvalidOptionalMessage & { message: string }
 
 export const quotelessJson = (obj: any) => {
   const json = JSON.stringify(obj, null, 2);
-  return json.replace(/"([^"]+)":/g, "$1:");
-};
+  return json.replace(/"([^"]+)":/g, "$1:")
+}
 
-export type ZodFormattedError<T, U = string> = {
-  _errors: U[];
+export type FormattedError<T, U = string> = {
+  _errors: U[]
 } & (T extends [any, ...any[]]
-  ? { [K in keyof T]?: ZodFormattedError<T[K]> }
+  ? { [K in keyof T]?: FormattedError<T[K]> }
   : T extends any[]
-  ? { [k: number]: ZodFormattedError<T[number]> }
+  ? { [k: number]: FormattedError<T[number]> }
   : T extends object
-  ? { [K in keyof T]?: ZodFormattedError<T[K]> }
-  : unknown);
+  ? { [K in keyof T]?: FormattedError<T[K]> }
+  : unknown)
 
-export type inferFormattedError<
-  T extends ZodType<any, any, any>,
+export type InferFormattedError<
+  T extends ValidateType<any, any, any>,
   U = string
-> = ZodFormattedError<TypeOf<T>, U>;
+> = FormattedError<TypeOf<T>, U>
 
-export class ZodError<T = any> extends Error {
-  issues: ZodIssue[] = [];
+export class ValidateError<T = any> extends Error {
+  issues: Issue[] = []
 
   get errors() {
-    return this.issues;
+    return this.issues
   }
 
-  constructor(issues: ZodIssue[]) {
+  constructor(issues: Issue[]) {
     super();
 
-    const actualProto = new.target.prototype;
+    const actualProto = new.target.prototype
     if (Object.setPrototypeOf) {
-      // eslint-disable-next-line ban/ban
-      Object.setPrototypeOf(this, actualProto);
+      Object.setPrototypeOf(this, actualProto)
     } else {
-      (this as any).__proto__ = actualProto;
+      (this as any).__proto__ = actualProto
     }
-    this.name = "ZodError";
-    this.issues = issues;
+    this.name = "ValidateError"
+    this.issues = issues
   }
 
-  format(): ZodFormattedError<T>;
-  format<U>(mapper: (issue: ZodIssue) => U): ZodFormattedError<T, U>;
+  format(): FormattedError<T>;
+  format<U>(mapper: (issue: Issue) => U): FormattedError<T, U>;
   format(_mapper?: any) {
-    const mapper: (issue: ZodIssue) => any =
+    const mapper: (issue: Issue) => any =
       _mapper ||
-      function (issue: ZodIssue) {
+      function (issue: Issue) {
         return issue.message;
       };
-    const fieldErrors: ZodFormattedError<T> = { _errors: [] } as any;
-    const processError = (error: ZodError) => {
+    const fieldErrors: FormattedError<T> = { _errors: [] } as any;
+    const processError = (error: ValidateError) => {
       for (const issue of error.issues) {
         if (issue.code === "invalid_union") {
-          issue.unionErrors.map(processError);
+          issue.unionErrors.map(processError)
         } else if (issue.code === "invalid_return_type") {
-          processError(issue.returnTypeError);
+          processError(issue.returnTypeError)
         } else if (issue.code === "invalid_arguments") {
-          processError(issue.argumentsError);
+          processError(issue.argumentsError)
         } else if (issue.path.length === 0) {
           (fieldErrors as any)._errors.push(mapper(issue));
         } else {
-          let curr: any = fieldErrors;
+          let curr: any = fieldErrors
           let i = 0;
           while (i < issue.path.length) {
             const el = issue.path[i];
             const terminal = i === issue.path.length - 1;
 
             if (!terminal) {
-              curr[el] = curr[el] || { _errors: [] };
-              // if (typeof el === "string") {
-              //   curr[el] = curr[el] || { _errors: [] };
-              // } else if (typeof el === "number") {
-              //   const errorArray: any = [];
-              //   errorArray._errors = [];
-              //   curr[el] = curr[el] || errorArray;
-              // }
+              curr[el] = curr[el] || { _errors: [] }
             } else {
-              curr[el] = curr[el] || { _errors: [] };
-              curr[el]._errors.push(mapper(issue));
+              curr[el] = curr[el] || { _errors: [] }
+              curr[el]._errors.push(mapper(issue))
             }
 
-            curr = curr[el];
-            i++;
+            curr = curr[el]
+            i++
           }
         }
       }
-    };
+    }
 
-    processError(this);
-    return fieldErrors;
+    processError(this)
+    return fieldErrors
   }
 
-  static create = (issues: ZodIssue[]) => {
-    const error = new ZodError(issues);
-    return error;
-  };
+  static create = (issues: Issue[]) => {
+    const error = new ValidateError(issues)
+    return error
+  }
 
   toString() {
     return this.message;
   }
   get message() {
-    return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2);
+    return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2)
   }
 
   get isEmpty(): boolean {
-    return this.issues.length === 0;
+    return this.issues.length === 0
   }
 
-  addIssue = (sub: ZodIssue) => {
-    this.issues = [...this.issues, sub];
-  };
+  addIssue = (sub: Issue) => {
+    this.issues = [...this.issues, sub]
+  }
 
-  addIssues = (subs: ZodIssue[] = []) => {
-    this.issues = [...this.issues, ...subs];
-  };
+  addIssues = (subs: Issue[] = []) => {
+    this.issues = [...this.issues, ...subs]
+  }
 
-  flatten(): typeToFlattenedError<T>;
-  flatten<U>(mapper?: (issue: ZodIssue) => U): typeToFlattenedError<T, U>;
+  flatten(): ToFlattenedError<T>
+  flatten<U>(mapper?: (issue: Issue) => U): ToFlattenedError<T, U>
   flatten<U = string>(
-    mapper: (issue: ZodIssue) => U = (issue: ZodIssue) => issue.message as any
+    mapper: (issue: Issue) => U = (issue: Issue) => issue.message as any
   ): any {
-    const fieldErrors: any = {};
-    const formErrors: U[] = [];
+    const fieldErrors: any = {}
+    const formErrors: U[] = []
     for (const sub of this.issues) {
       if (sub.path.length > 0) {
         fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
         fieldErrors[sub.path[0]].push(mapper(sub));
       } else {
-        formErrors.push(mapper(sub));
+        formErrors.push(mapper(sub))
       }
     }
-    return { formErrors, fieldErrors };
+    return { formErrors, fieldErrors }
   }
 
   get formErrors() {
-    return this.flatten();
+    return this.flatten()
   }
 }
 
 type stripPath<T extends object> = T extends any
   ? util.OmitKeys<T, "path">
-  : never;
+  : never
 
-export type IssueData = stripPath<ZodIssueOptionalMessage> & {
-  path?: (string | number)[];
-  fatal?: boolean;
-};
-export type MakeErrorData = IssueData;
+export type ErrorData = stripPath<InvalidOptionalMessage> & {
+  path?: (string | number)[]
+  fatal?: boolean
+}
+
+export type MakeErrorData = ErrorData
 
 export type ErrorMapCtx = {
   defaultError: string;
@@ -304,6 +298,6 @@ export type ErrorMapCtx = {
 };
 
 export type ZodErrorMap = (
-  issue: ZodIssueOptionalMessage,
+  issue: InvalidOptionalMessage,
   _ctx: ErrorMapCtx
-) => { message: string };
+) => { message: string }
