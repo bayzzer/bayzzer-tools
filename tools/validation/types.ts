@@ -39,10 +39,10 @@ export type RefinementCtx = {
 }
 
 export type RawShape = { [k: string]: ValidateAnyType }
-export type ValidateAnyType = ValidateType<any, any, any>
-export type TypeOf<T extends ValidateType<any, any, any>> = T["_output"]
-export type Input<T extends ValidateType<any, any, any>> = T["_input"]
-export type Output<T extends ValidateType<any, any, any>> = T["_output"]
+export type ValidateAnyType = SchemaOf<any, any, any>
+export type TypeOf<T extends SchemaOf<any, any, any>> = T["_output"]
+export type Input<T extends SchemaOf<any, any, any>> = T["_input"]
+export type Output<T extends SchemaOf<any, any, any>> = T["_output"]
 export type { TypeOf as infer }
 
 export type CustomErrorParams = Partial<util.Omit<CustomError, "code">>
@@ -133,7 +133,7 @@ export type SafeParseReturnType<Input, Output> =
   | SafeParseSuccess<Output>
   | SafeParseError<Input>;
 
-export abstract class ValidateType<
+export abstract class SchemaOf<
   Output = any,
   Def extends ValidationTypeDef = ValidationTypeDef,
   Input = Output
@@ -468,7 +468,7 @@ const uuidRegex =
 const emailRegex =
   /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 
-export class ValidationString extends ValidateType<string, StringDef> {
+export class ValidationString extends SchemaOf<string, StringDef> {
   _parse(input: ParseInput): ParseReturnType<string> {
     const parsedType = this._getType(input);
 
@@ -749,7 +749,7 @@ export interface NumberDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Number;
 }
 
-export class ValidationNumber extends ValidateType<number, NumberDef> {
+export class ValidationNumber extends SchemaOf<number, NumberDef> {
   _parse(input: ParseInput): ParseReturnType<number> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.number) {
@@ -968,7 +968,7 @@ export interface BigIntDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.BigInt;
 }
 
-export class ValidationBigInt extends ValidateType<bigint, BigIntDef> {
+export class ValidationBigInt extends SchemaOf<bigint, BigIntDef> {
   _parse(input: ParseInput): ParseReturnType<bigint> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.bigint) {
@@ -1002,7 +1002,7 @@ export interface BooleanDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Boolean;
 }
 
-export class ValidationBoolean extends ValidateType<boolean, BooleanDef> {
+export class ValidationBoolean extends SchemaOf<boolean, BooleanDef> {
   _parse(input: ParseInput): ParseReturnType<boolean> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.boolean) {
@@ -1040,7 +1040,7 @@ export interface DateDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Date;
 }
 
-export class ValidationDate extends ValidateType<Date, DateDef> {
+export class ValidationDate extends SchemaOf<Date, DateDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
 
@@ -1166,7 +1166,7 @@ export interface UndefinedDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Undefined;
 }
 
-export class ValidationUndefined extends ValidateType<undefined, UndefinedDef> {
+export class ValidationUndefined extends SchemaOf<undefined, UndefinedDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.undefined) {
@@ -1201,7 +1201,7 @@ export interface NullDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Null;
 }
 
-export class ValidationNull extends ValidateType<null, NullDef> {
+export class ValidationNull extends SchemaOf<null, NullDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.null) {
@@ -1234,7 +1234,7 @@ export interface AnyDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Any;
 }
 
-export class ValidationAny extends ValidateType<any, AnyDef> {
+export class ValidationAny extends SchemaOf<any, AnyDef> {
   // to prevent instances of other classes from extending ZodAny. this causes issues with catchall in ZodObject.
   _any: true = true;
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
@@ -1259,7 +1259,7 @@ export interface UnknownDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Unknown;
 }
 
-export class ValidationUnknown extends ValidateType<unknown, UnknownDef> {
+export class ValidationUnknown extends SchemaOf<unknown, UnknownDef> {
   // required
   _unknown: true = true;
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
@@ -1285,7 +1285,7 @@ export interface NeverDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Never;
 }
 
-export class ValidationNever extends ValidateType<never, NeverDef> {
+export class ValidationNever extends SchemaOf<never, NeverDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const ctx = this._getOrReturnCtx(input);
     addIssueToContext(ctx, {
@@ -1314,7 +1314,7 @@ export interface VoidDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.Void;
 }
 
-export class ValidationVoid extends ValidateType<void, VoidDef> {
+export class ValidationVoid extends SchemaOf<void, VoidDef> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.undefined) {
@@ -1363,7 +1363,7 @@ type arrayOutputType<
 export class ValidationArray<
   T extends ValidateAnyType,
   Cardinality extends ArrayCardinality = "many"
-> extends ValidateType<
+> extends SchemaOf<
   arrayOutputType<T, Cardinality>,
   ArrayDef<T>,
   Cardinality extends "atleastone"
@@ -1630,7 +1630,7 @@ export class ValidationObject<
   Catchall extends ValidateAnyType = ValidateAnyType,
   Output = ObjectOutputType<T, Catchall>,
   Input = ObjectInputType<T, Catchall>
-> extends ValidateType<Output, ObjectDef<T, UnknownKeys, Catchall>, Input> {
+> extends SchemaOf<Output, ObjectDef<T, UnknownKeys, Catchall>, Input> {
   private _cached: { shape: T; keys: string[] } | null = null;
 
   _getCached(): { shape: T; keys: string[] } {
@@ -2025,7 +2025,7 @@ export interface UnionDef<
   typeName: ValidationFirstKind.Union;
 }
 
-export class ValidationUnion<T extends UnionOptions> extends ValidateType<
+export class ValidationUnion<T extends UnionOptions> extends SchemaOf<
   T[number]["_output"],
   UnionDef<T>,
   T[number]["_input"]
@@ -2180,7 +2180,7 @@ export class ValidationDiscriminatedUnion<
   Discriminator extends string,
   DiscriminatorValue extends Primitive,
   Option extends DiscriminatedUnionOption<Discriminator, DiscriminatorValue>
-> extends ValidateType<
+> extends SchemaOf<
   Option["_output"],
   DiscriminatedUnionDef<Discriminator, DiscriminatorValue, Option>,
   Option["_input"]
@@ -2364,7 +2364,7 @@ function mergeValues(
 export class ValidationIntersection<
   T extends ValidateAnyType,
   U extends ValidateAnyType
-> extends ValidateType<
+> extends SchemaOf<
   T["_output"] & U["_output"],
   IntersectionDef<T, U>,
   T["_input"] & U["_input"]
@@ -2448,7 +2448,7 @@ export class ValidationIntersection<
 export type TupleItems = [ValidateAnyType, ...ValidateAnyType[]];
 export type AssertArray<T> = T extends any[] ? T : never;
 export type OutputTypeOfTuple<T extends TupleItems | []> = AssertArray<{
-  [k in keyof T]: T[k] extends ValidateType<any, any> ? T[k]["_output"] : never;
+  [k in keyof T]: T[k] extends SchemaOf<any, any> ? T[k]["_output"] : never;
 }>
 
 export type OutputTypeOfTupleWithRest<
@@ -2459,7 +2459,7 @@ export type OutputTypeOfTupleWithRest<
   : OutputTypeOfTuple<T>;
 
 export type InputTypeOfTuple<T extends TupleItems | []> = AssertArray<{
-  [k in keyof T]: T[k] extends ValidateType<any, any> ? T[k]["_input"] : never;
+  [k in keyof T]: T[k] extends SchemaOf<any, any> ? T[k]["_input"] : never;
 }>
 
 export type InputTypeOfTupleWithRest<
@@ -2485,7 +2485,7 @@ export type ValidationAnyTuple = ValidationTuple<
 export class ValidationTuple<
   T extends [ValidateAnyType, ...ValidateAnyType[]] | [] = [ValidateAnyType, ...ValidateAnyType[]],
   Rest extends ValidateAnyType | null = null
-> extends ValidateType<
+> extends SchemaOf<
   OutputTypeOfTupleWithRest<T, Rest>,
   TupleDef<T, Rest>,
   InputTypeOfTupleWithRest<T, Rest>
@@ -2586,7 +2586,7 @@ export interface RecordDef<
   typeName: ValidationFirstKind.Record;
 }
 
-type KeySchema = ValidateType<string | number | symbol, any, any>;
+type KeySchema = SchemaOf<string | number | symbol, any, any>;
 type RecordType<K extends string | number | symbol, V> = [string] extends [K]
   ? Record<K, V>
   : [number] extends [K]
@@ -2597,7 +2597,7 @@ type RecordType<K extends string | number | symbol, V> = [string] extends [K]
 export class ValidationRecord<
   Key extends KeySchema = ValidationString,
   Value extends ValidateAnyType = ValidateAnyType
-> extends ValidateType<
+> extends SchemaOf<
   RecordType<Key["_output"], Value["_output"]>,
   RecordDef<Key, Value>,
   RecordType<Key["_input"], Value["_input"]>
@@ -2657,7 +2657,7 @@ export class ValidationRecord<
     params?: RawCreateParams
   ): ValidationRecord<Keys, Value>;
   static create(first: any, second?: any, third?: any): ValidationRecord<any, any> {
-    if (second instanceof ValidateType) {
+    if (second instanceof SchemaOf) {
       return new ValidationRecord({
         keyType: first,
         valueType: second,
@@ -2694,7 +2694,7 @@ export interface MapDef<
 export class ValidationMap<
   Key extends ValidateAnyType = ValidateAnyType,
   Value extends ValidateAnyType = ValidateAnyType
-> extends ValidateType<
+> extends SchemaOf<
   Map<Key["_output"], Value["_output"]>,
   MapDef<Key, Value>,
   Map<Key["_input"], Value["_input"]>
@@ -2792,7 +2792,7 @@ export interface SetDef<Value extends ValidateAnyType = ValidateAnyType>
   maxSize: { value: number; message?: string } | null;
 }
 
-export class ValidatioSet<Value extends ValidateAnyType = ValidateAnyType> extends ValidateType<
+export class ValidatioSet<Value extends ValidateAnyType = ValidateAnyType> extends SchemaOf<
   Set<Value["_output"]>,
   SetDef<Value>,
   Set<Value["_input"]>
@@ -2928,7 +2928,7 @@ export type InnerTypeOfFunction<
 export class ValidationFunction<
   Args extends ValidationTuple<any, any>,
   Returns extends ValidateAnyType
-> extends ValidateType<
+> extends SchemaOf<
   OuterTypeOfFunction<Args, Returns>,
   FunctionDef<Args, Returns>,
   InnerTypeOfFunction<Args, Returns>
@@ -3034,7 +3034,7 @@ export class ValidationFunction<
     });
   }
 
-  returns<NewReturnType extends ValidateType<any, any>>(
+  returns<NewReturnType extends SchemaOf<any, any>>(
     returnType: NewReturnType
   ): ValidationFunction<Args, NewReturnType> {
     return new ValidationFunction({
@@ -3102,7 +3102,7 @@ export interface LazyDef<T extends ValidateAnyType = ValidateAnyType>
   typeName: ValidationFirstKind.Lazy;
 }
 
-export class ValidationLazy<T extends ValidateAnyType> extends ValidateType<
+export class ValidationLazy<T extends ValidateAnyType> extends SchemaOf<
   Output<T>,
   LazyDef<T>,
   Input<T>
@@ -3141,7 +3141,7 @@ export interface LiteralDef<T = any> extends ValidationTypeDef {
   typeName: ValidationFirstKind.Literal;
 }
 
-export class ValidationLiteral<T> extends ValidateType<T, LiteralDef<T>> {
+export class ValidationLiteral<T> extends SchemaOf<T, LiteralDef<T>> {
   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
     if (input.data !== this._def.value) {
       const ctx = this._getOrReturnCtx(input);
@@ -3210,7 +3210,7 @@ function createZodEnum(values: any, params?: RawCreateParams) {
   }) as any;
 }
 
-export class ValidationEnum<T extends [string, ...string[]]> extends ValidateType<
+export class ValidationEnum<T extends [string, ...string[]]> extends SchemaOf<
   T[number],
   EnumDef<T>
 > {
@@ -3286,7 +3286,7 @@ export interface NativeEnumDef<T extends EnumLike = EnumLike>
 
 type EnumLike = { [k: string]: string | number;[nu: number]: string };
 
-export class ValidationNativeEnum<T extends EnumLike> extends ValidateType<
+export class ValidationNativeEnum<T extends EnumLike> extends SchemaOf<
   T[keyof T],
   NativeEnumDef<T>
 > {
@@ -3349,7 +3349,7 @@ export interface PromiseDef<T extends ValidateAnyType = ValidateAnyType>
   typeName: ValidationFirstKind.Promise;
 }
 
-export class ValidationPromise<T extends ValidateAnyType> extends ValidateType<
+export class ValidationPromise<T extends ValidateAnyType> extends SchemaOf<
   Promise<T["_output"]>,
   PromiseDef<T>,
   Promise<T["_input"]>
@@ -3434,7 +3434,7 @@ export class ValidationEffects<
   T extends ValidateAnyType,
   Output = T["_output"],
   Input = T["_input"]
-> extends ValidateType<Output, EffectsDef<T>, Input> {
+> extends SchemaOf<Output, EffectsDef<T>, Input> {
   innerType() {
     return this._def.schema;
   }
@@ -3599,7 +3599,7 @@ export interface OptionalDef<T extends ValidateAnyType = ValidateAnyType>
 
 export type ValidationOptionalType<T extends ValidateAnyType> = ValidationOptional<T>;
 
-export class ValidationOptional<T extends ValidateAnyType> extends ValidateType<
+export class ValidationOptional<T extends ValidateAnyType> extends SchemaOf<
   T["_output"] | undefined,
   OptionalDef<T>,
   T["_input"] | undefined
@@ -3643,7 +3643,7 @@ export interface NullableDef<T extends ValidateAnyType = ValidateAnyType>
 
 export type ValidationNullableType<T extends ValidateAnyType> = ValidationNullable<T>;
 
-export class ValidationNullable<T extends ValidateAnyType> extends ValidateType<
+export class ValidationNullable<T extends ValidateAnyType> extends SchemaOf<
   T["_output"] | null,
   NullableDef<T>,
   T["_input"] | null
@@ -3686,7 +3686,7 @@ export interface DefaultDef<T extends ValidateAnyType = ValidateAnyType>
   typeName: ValidationFirstKind.Default;
 }
 
-export class ValidationDefault<T extends ValidateAnyType> extends ValidateType<
+export class ValidationDefault<T extends ValidateAnyType> extends SchemaOf<
   util.noUndefined<T["_output"]>,
   DefaultDef<T>,
   T["_input"] | undefined
@@ -3732,7 +3732,7 @@ export interface NaNDef extends ValidationTypeDef {
   typeName: ValidationFirstKind.NaN;
 }
 
-export class ValidationNaN extends ValidateType<number, NaNDef> {
+export class ValidationNaN extends SchemaOf<number, NaNDef> {
   _parse(input: ParseInput): ParseReturnType<any> {
     const parsedType = this._getType(input);
     if (parsedType !== ZodParsedType.nan) {
@@ -3777,7 +3777,7 @@ export type BRAND<T extends string | number | symbol> = {
 export class ValidationBranded<
   T extends ValidateAnyType,
   B extends string | number | symbol
-> extends ValidateType<
+> extends SchemaOf<
   T["_output"] & BRAND<B>,
   BrandedDef<T>,
   T["_input"] & BRAND<B>
@@ -3801,7 +3801,7 @@ export const Custom = <T>(
   check?: (data: unknown) => any,
   params: Parameters<ValidateAnyType["refine"]>[1] = {},
   fatal?: boolean
-): ValidateType<T> => {
+): SchemaOf<T> => {
   if (check)
     return ValidationAny.create().superRefine((data, ctx) => {
       if (!check(data)) {
@@ -3813,7 +3813,7 @@ export const Custom = <T>(
   return ValidationAny.create();
 };
 
-export { ValidateType as Schema, ValidateType as ZodSchema };
+export { SchemaOf as Schema, SchemaOf as ZodSchema };
 
 export const Late = {
   object: ValidationObject.lazyCreate,

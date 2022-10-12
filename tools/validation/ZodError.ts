@@ -1,11 +1,11 @@
-import type { TypeOf, ValidateType } from ".";
+import type { TypeOf, SchemaOf } from ".";
 import { Primitive } from "./helpers/typeAliases";
 import { util, ZodParsedType } from "./helpers/util";
 
 type AllKeys<T> = T extends any ? keyof T : never;
 
 export type InferFlattenedErrors<
-  T extends ValidateType<any, any, any>,
+  T extends SchemaOf<any, any, any>,
   U = string
 > = ToFlattenedError<TypeOf<T>, U>
 
@@ -166,7 +166,7 @@ export type FormattedError<T, U = string> = {
   : unknown)
 
 export type InferFormattedError<
-  T extends ValidateType<any, any, any>,
+  T extends SchemaOf<any, any, any>,
   U = string
 > = FormattedError<TypeOf<T>, U>
 
