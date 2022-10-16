@@ -1352,69 +1352,21 @@ export const Custom = <T>(
   return ValidationAny.create();
 };
 
-export { SchemaOf as Schema, SchemaOf as ZodSchema };
-
 export const Late = {
   object: ValidationObject.lazyCreate,
 };
 
 export enum ValidationFirstKind {
-  String = "String",
-  Number = "Number",
-  NaN = "NaN",
-  BigInt = "BigInt",
-  Boolean = "Boolean",
-  Date = "Date",
-  Undefined = "Undefined",
-  Null = "Null",
-  Any = "Any",
-  Unknown = "Unknown",
-  Never = "Never",
-  Void = "Void",
+  String = "String",  
+  Any = "Any",  
   Array = "Array",
-  Object = "Object",
-  Union = "Union",
-  DiscriminatedUnion = "DiscriminatedUnion",
-  Intersection = "Intersection",
-  Tuple = "Tuple",
-  Record = "Record",
-  Map = "Map",
-  Set = "Set",
-  Function = "Function",
-  Lazy = "Lazy",
-  Literal = "Literal",
-  Enum = "Enum",
-  Effects = "Effects",
-  NativeEnum = "NativeEnum",
-  Optional = "Optional",
-  Nullable = "Nullable",
-  Default = "Default",
-  Promise = "Promise",
-  Branded = "Branded",
+  Object = "Object",  
+  Effects = "Effects"  
 }
 export type ValidationFirstSchemaType =
   | ValidationString
   | ValidationArray<any, any>
   | ValidationObject<any, any, any, any, any>
   | ValidationEffects<any, any, any>
-
-const stringType = ValidationString.create;
-const anyType = ValidationAny.create;
-const arrayType = ValidationArray.create;
-const objectType = ValidationObject.create;
-const strictObjectType = ValidationObject.strictCreate
-const effectsType = ValidationEffects.create;
-const preprocessType = ValidationEffects.createWithPreprocess;
-
-export {
-  anyType as any,
-  arrayType as array,
-  effectsType as effect,
-  objectType as object,
-  preprocessType as preprocess,
-  strictObjectType as strictObject,
-  stringType as string,
-  effectsType as transformer
-};
 
 export const NEVER = INVALID as never;

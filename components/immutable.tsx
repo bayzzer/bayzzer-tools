@@ -2,7 +2,11 @@ import {
     ImmutableManage
 } from '@bayzzer/tools'
 
-import { object, SchemaOf, string } from 'tools/validation'
+import {
+    object,
+    SchemaOf,
+    string
+} from 'tools/validation'
 
 export const Immutable = () => {
     interface State {

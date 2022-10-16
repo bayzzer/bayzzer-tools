@@ -26,11 +26,6 @@ const errorMap: ErrorMap = (issue, _ctx) => {
     case ErrorCode.invalid_union:
       message = `Invalid input`;
       break;
-    case ErrorCode.invalid_union_discriminator:
-      message = `Invalid discriminator value. Expected ${util.joinValues(
-        issue.options
-      )}`;
-      break;
     case ErrorCode.invalid_enum_value:
       message = `Invalid enum value. Expected ${util.joinValues(
         issue.options
