@@ -1,5 +1,5 @@
-import { SchemaOf } from './types';
 import {
+    SchemaOf,
     ValidationAny,
     ValidationArray,
     ValidationEffects,

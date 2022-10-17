@@ -1,6 +1,5 @@
-import type { SchemaOf } from ".";
 import { util, ZodParsedType } from "./helpers/util";
-import { TypeOf } from "./types";
+import { SchemaOf, TypeOf } from "./types";
 
 type AllKeys<T> = T extends any ? keyof T : never;
 
