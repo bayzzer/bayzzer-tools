@@ -1,12 +1,5 @@
 export namespace util {
-  type AssertEqual<T, U> = (<V>() => V extends T ? 1 : 2) extends <
-    V
-  >() => V extends U ? 1 : 2
-    ? true
-    : false;
-
-  export const assertEqual = <A, B>(val: AssertEqual<A, B>) => val;
-  export function assertIs<T>(_arg: T): void {}
+ 
   export function assertNever(_x: never): never {
     throw new Error();
   }
@@ -24,24 +17,7 @@ export namespace util {
       obj[item] = item;
     }
     return obj as any;
-  };
-
-  export const getValidEnumValues = (obj: any) => {
-    const validKeys = objectKeys(obj).filter(
-      (k: any) => typeof obj[obj[k]] !== "number"
-    );
-    const filtered: any = {};
-    for (const k of validKeys) {
-      filtered[k] = obj[k];
-    }
-    return objectValues(filtered);
-  };
-
-  export const objectValues = (obj: any) => {
-    return objectKeys(obj).map(function (e) {
-      return obj[e];
-    });
-  };
+  };  
 
   export const objectKeys: ObjectConstructor["keys"] =
     typeof Object.keys === "function" // eslint-disable-line ban/ban
@@ -54,27 +30,7 @@ export namespace util {
             }
           }
           return keys;
-        };
-
-  export const find = <T>(
-    arr: T[],
-    checker: (arg: T) => any
-  ): T | undefined => {
-    for (const item of arr) {
-      if (checker(item)) return item;
-    }
-    return undefined;
-  };
-
-  export type identity<T> = T;
-  export type flatten<T> = identity<{ [k in keyof T]: T[k] }>;
-  export type noUndefined<T> = T extends undefined ? never : T;
-
-  export const isInteger: NumberConstructor["isInteger"] =
-    typeof Number.isInteger === "function"
-      ? (val) => Number.isInteger(val) // eslint-disable-line ban/ban
-      : (val) =>
-          typeof val === "number" && isFinite(val) && Math.floor(val) === val;
+        } 
 
   export function joinValues<T extends any[]>(
     array: T,

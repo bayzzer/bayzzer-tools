@@ -144,10 +144,6 @@ export class ParseStatus {
     return { status: status.value, value: finalObject };
   }
 }
-export interface ParseResult {
-  status: "aborted" | "dirty" | "valid";
-  data: any;
-}
 
 export type INVALID = { status: "aborted" };
 export const INVALID: INVALID = Object.freeze({
