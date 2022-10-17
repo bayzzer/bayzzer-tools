@@ -10,20 +10,11 @@ import {
 export {SchemaOf}
 
 
-const stringType = ValidationString.create;
-const anyType = ValidationAny.create;
-const arrayType = ValidationArray.create;
+export const string = ValidationString.create;
+export const any = ValidationAny.create;
+export const array = ValidationArray.create;
 export const object = ValidationObject.create;
-const strictObjectType = ValidationObject.strictCreate
-const effectsType = ValidationEffects.create;
-const preprocessType = ValidationEffects.createWithPreprocess;
+export const strictObject = ValidationObject.strictCreate
+export const effects = ValidationEffects.create;
+export const preprocess = ValidationEffects.createWithPreprocess;
 
-export {
-    anyType as any,
-    arrayType as array,
-    effectsType as effect,
-    preprocessType as preprocess,
-    strictObjectType as strictObject,
-    stringType as string,
-    effectsType as transformer    
-}
