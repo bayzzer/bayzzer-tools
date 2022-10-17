@@ -1,11 +1,10 @@
-import { ValidationArray } from "./array";
+import { ValidationArray } from "./array"
 import {
   addIssueToContext,
   AsyncParseReturnType,
   INVALID,
   isAsync,
   isValid,
-  OK,
   ParseContext,
   ParseInput,
   ParseParams,
@@ -14,9 +13,7 @@ import {
   ParseStatus,
   SyncParseReturnType,
 } from "./helpers/parseUtil";
-import { getParsedType, util } from "./helpers/util";
-import { ValidationObject } from "./object";
-import { ValidationString } from "./string";
+import { getParsedType, util } from "./helpers/util"
 import {
   ErrorData,
   CustomError,
@@ -389,31 +386,6 @@ export abstract class SchemaOf<
     return this.safeParse(null).success;
   }
 }
-export interface AnyDef extends ValidationTypeDef {
-  typeName: ValidationFirstKind.Any;
-}
-
-export class ValidationAny extends SchemaOf<any, AnyDef> {
-  // to prevent instances of other classes from extending ZodAny. this causes issues with catchall in ZodObject.
-  _any: true = true;
-  _parse(input: ParseInput): ParseReturnType<this["_output"]> {
-    return OK(input.data);
-  }
-  static create = (params?: RawCreateParams): ValidationAny => {
-    return new ValidationAny({
-      typeName: ValidationFirstKind.Any,
-      ...processCreateParams(params),
-    });
-  };
-}
-
-//////////////////////////////////////////////
-//////////////////////////////////////////////
-//////////                          //////////
-//////////        ZodEffects        //////////
-//////////                          //////////
-//////////////////////////////////////////////
-//////////////////////////////////////////////
 
 export type Refinement<T> = (arg: T, ctx: RefinementCtx) => any;
 export type SuperRefinement<T> = (arg: T, ctx: RefinementCtx) => void;
@@ -594,24 +566,6 @@ export class ValidationEffects<
   };
 }
 
-export { ValidationEffects as ZodTransformer };
-
-export const Custom = <T>(
-  check?: (data: unknown) => any,
-  params: Parameters<ValidateAnyType["refine"]>[1] = {},
-  fatal?: boolean
-): SchemaOf<T> => {
-  if (check)
-    return ValidationAny.create().superRefine((data, ctx) => {
-      if (!check(data)) {
-        const p = typeof params === "function" ? params(data) : params;
-        const p2 = typeof p === "string" ? { message: p } : p;
-        ctx.addIssue({ code: "custom", ...p2, fatal });
-      }
-    });
-  return ValidationAny.create();
-};
-
 export enum ValidationFirstKind {
   String = "String",  
   Any = "Any",  
@@ -619,10 +573,3 @@ export enum ValidationFirstKind {
   Object = "Object",  
   Effects = "Effects"  
 }
-export type ValidationFirstSchemaType =
-  | ValidationString
-  | ValidationArray<any, any>
-  | ValidationObject<any, any, any, any, any>
-  | ValidationEffects<any, any, any>
-
-export const NEVER = INVALID as never;
