@@ -1,10 +1,10 @@
+import { ValidationString } from "./string";
 import {
     SchemaOf,
     ValidationAny,
     ValidationArray,
     ValidationEffects,
     ValidationObject,
-    ValidationString
 } from "./types";
 
 
