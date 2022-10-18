@@ -29,17 +29,12 @@ export type RefinementCtx = {
 
 export type RawShape = { [k: string]: ValidateAnyType }
 export type ValidateAnyType = SchemaOf<any, any, any>
-export type TypeOf<T extends SchemaOf<any, any, any>> = T["_output"]
-export type Input<T extends SchemaOf<any, any, any>> = T["_input"]
-export type Output<T extends SchemaOf<any, any, any>> = T["_output"]
-export type { TypeOf as infer }
 
 export type CustomErrorParams = Partial<util.Omit<CustomError, "code">>
 export interface ValidationTypeDef {
   errorMap?: ErrorMap
   description?: string
 }
-
 export class ValidateInputLazyPath implements ParseInput {
   parent: ParseContext;
   data: any;
@@ -130,11 +125,7 @@ export abstract class SchemaOf<
   readonly _type!: Output
   readonly _output!: Output
   readonly _input!: Input
-  readonly _def!: Def
-
-  get description() {
-    return this._def.description
-  }
+  readonly _def!: Def  
 
   abstract _parse(input: ParseInput): ParseReturnType<Output>
 
@@ -386,9 +377,6 @@ export abstract class SchemaOf<
     return this.safeParse(null).success;
   }
 }
-
-export type Refinement<T> = (arg: T, ctx: RefinementCtx) => any;
-export type SuperRefinement<T> = (arg: T, ctx: RefinementCtx) => void;
 
 export type RefinementEffect<T> = {
   type: "refinement";

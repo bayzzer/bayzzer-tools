@@ -95,7 +95,7 @@ export class ValidationObject<
 > extends SchemaOf<Output, ObjectDef<T>, Input> {
   private _cached: { shape: T; keys: string[] } | null = null;
 
-  _getCached(): { shape: T; keys: string[] } {
+  private _getCached(): { shape: T; keys: string[] } {
     if (this._cached !== null) return this._cached;
     const shape = this._def.shape();
     const keys = util.objectKeys(shape);

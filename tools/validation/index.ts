@@ -2,8 +2,7 @@ import { ValidationArray } from "./array";
 import { ValidationObject } from "./object";
 import { ValidationString } from "./string";
 import {
-    SchemaOf,
-    ValidationEffects,
+    SchemaOf, ValidationEffects,
 } from "./types";
 
 export {SchemaOf}

@@ -6,9 +6,7 @@ export const ErrorCode = util.arrayToEnum([
   "invalid_string",
   "too_small",
   "too_big"
-]);
-
-
+])
 
 export type ErrorBase = {
   path: (string | number)[]
