@@ -69,19 +69,20 @@ export const Immutable = () => {
             }),
             password: string().min(2).max(4, 'max 4'),
             key: object({
-                values: string().array().min(2)
+                values: string().array().max(2)
             })
         })
 
         var user: User = {
-            username: 'usr',
-            password: '***7',
+            username: 'ur4545',
+            password: '***7ty',
             key: {
-                values: ['rtr', 'trt']
+                values: ['rtr', 'trt', 'trt']
             }
         }
 
-        var r = schema.parse(user)
+        var r = await schema.parseAsync(user)
+    
         console.log(r)
     }
 

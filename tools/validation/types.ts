@@ -20,7 +20,7 @@ import {
   ValidateError,
   ErrorMap,
   ErrorCode,
-} from "./ZodError";
+} from "./error";
 
 export type RefinementCtx = {
   addIssue: (arg: ErrorData) => void
@@ -568,7 +568,6 @@ export class ValidationEffects<
 
 export enum ValidationFirstKind {
   String = "String",  
-  Any = "Any",  
   Array = "Array",
   Object = "Object",  
   Effects = "Effects"  

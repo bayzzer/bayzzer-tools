@@ -1,5 +1,5 @@
 import { util, ZodParsedType } from "../helpers/util";
-import { ErrorMap, ErrorCode } from "../ZodError";
+import { ErrorMap, ErrorCode } from "../error";
 
 const errorMap: ErrorMap = (issue, _ctx) => {
   let message: string;
@@ -10,36 +10,7 @@ const errorMap: ErrorMap = (issue, _ctx) => {
       } else {
         message = `Expected ${issue.expected}, received ${issue.received}`;
       }
-      break;
-    case ErrorCode.invalid_literal:
-      message = `Invalid literal value, expected ${JSON.stringify(
-        issue.expected,
-        util.jsonStringifyReplacer
-      )}`;
-      break;
-    case ErrorCode.unrecognized_keys:
-      message = `Unrecognized key(s) in object: ${util.joinValues(
-        issue.keys,
-        ", "
-      )}`;
-      break;
-    case ErrorCode.invalid_union:
-      message = `Invalid input`;
-      break;
-    case ErrorCode.invalid_enum_value:
-      message = `Invalid enum value. Expected ${util.joinValues(
-        issue.options
-      )}, received '${issue.received}'`;
-      break;
-    case ErrorCode.invalid_arguments:
-      message = `Invalid function arguments`;
-      break;
-    case ErrorCode.invalid_return_type:
-      message = `Invalid function return type`;
-      break;
-    case ErrorCode.invalid_date:
-      message = `Invalid date`;
-      break;
+      break
     case ErrorCode.invalid_string:
       if (typeof issue.validation === "object") {
         if ("startsWith" in issue.validation) {
@@ -95,12 +66,6 @@ const errorMap: ErrorMap = (issue, _ctx) => {
       break;
     case ErrorCode.custom:
       message = `Invalid input`;
-      break;
-    case ErrorCode.invalid_intersection_types:
-      message = `Intersection results could not be merged`;
-      break;
-    case ErrorCode.not_multiple_of:
-      message = `Number must be a multiple of ${issue.multipleOf}`;
       break;
     default:
       message = _ctx.defaultError;

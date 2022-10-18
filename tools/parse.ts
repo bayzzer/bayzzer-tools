@@ -6,3 +6,8 @@ export const parseJSON = <T>(value: string | null): T | undefined => {
       return undefined
     }
   }
+
+  export const quotelessJSON = (obj: any) => {
+    const json = JSON.stringify(obj, null, 2);
+    return json.replace(/"([^"]+)":/g, "$1:")
+  }

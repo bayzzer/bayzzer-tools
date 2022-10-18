@@ -2,7 +2,7 @@ import { errorUtil } from "./helpers/errorUtil";
 import { addIssueToContext, INVALID, ParseInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
 import { ZodParsedType } from "./helpers/util";
 import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationFirstKind, ValidationTypeDef } from "./types";
-import { ErrorCode } from "./ZodError";
+import { ErrorCode } from "./error";
 
 export interface ArrayDef<T extends ValidateAnyType = ValidateAnyType>
   extends ValidationTypeDef {

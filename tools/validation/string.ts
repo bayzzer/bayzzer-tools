@@ -2,7 +2,7 @@ import { errorUtil } from "./helpers/errorUtil";
 import { addIssueToContext, INVALID, ParseContext, ParseInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
 import { util, ZodParsedType } from "./helpers/util";
 import { processCreateParams, RawCreateParams, SchemaOf, ValidationFirstKind, ValidationTypeDef } from "./types";
-import { ErrorCode, StringValidation } from "./ZodError";
+import { ErrorCode, StringValidation } from "./error";
 
 type StringCheck =
   | { kind: "min"; value: number; message?: string }
@@ -230,46 +230,10 @@ export class ValidationString extends SchemaOf<string, StringDef> {
     return this.min(len, message).max(len, message);
   }
 
-  nonempty = (message?: errorUtil.ErrMessage) =>
-    this.min(1, errorUtil.errToObj(message));
-
-  trim = () =>
-    new ValidationString({
-      ...this._def,
-      checks: [...this._def.checks, { kind: "trim" }],
-    });
-
-  get isEmail() {
-    return !!this._def.checks.find((ch) => ch.kind === "email");
-  }
-  get isURL() {
-    return !!this._def.checks.find((ch) => ch.kind === "url");
-  }
-  get isUUID() {
-    return !!this._def.checks.find((ch) => ch.kind === "uuid");
-  }
-  get isCUID() {
-    return !!this._def.checks.find((ch) => ch.kind === "cuid");
-  }
-
-  get minLength() {
-    let min: number | null = null
-    for (const ch of this._def.checks) {
-      if (ch.kind === "min") {
-        if (min === null || ch.value > min) min = ch.value;
-      }
-    }
-    return min
-  }
-  get maxLength() {
-    let max: number | null = null;
-    for (const ch of this._def.checks) {
-      if (ch.kind === "max") {
-        if (max === null || ch.value < max) max = ch.value;
-      }
-    }
-    return max
-  }
+  trim = () => new ValidationString({
+    ...this._def,
+    checks: [...this._def.checks, { kind: "trim" }],
+  })
 
   static create = (params?: RawCreateParams): ValidationString => {
     return new ValidationString({

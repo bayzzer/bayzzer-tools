@@ -2,7 +2,7 @@ import { ValidationArray } from "./array";
 import { AsyncParseReturnType, isAsync, isValid, ParseContext, ParseInput, ParseParams, ParseReturnType, ParseStatus, SyncParseReturnType } from "./helpers/parseUtil"
 import { getParsedType } from "./helpers/util"
 import { CustomErrorParams, RefinementCtx, RefinementEffect, SafeParseReturnType, ValidationEffects, ValidationFirstKind, ValidationTypeDef } from "./types"
-import { ErrorCode, ErrorData, ValidateError } from "./ZodError";
+import { ErrorCode, ErrorData, ValidateError } from "./error";
 
 const handleResult = <Input, Output>(
     ctx: ParseContext,
