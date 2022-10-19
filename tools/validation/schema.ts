@@ -12,8 +12,8 @@ import {
   ParseReturnType,
   ParseStatus,
   SyncParseReturnType,
-} from "./helpers/parseUtil";
-import { getParsedType, util } from "./helpers/util"
+} from "./utils/parseUtil";
+import { getParsedType, util } from "./utils/util"
 import {
   ErrorData,
   CustomError,

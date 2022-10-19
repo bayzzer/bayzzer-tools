@@ -1,5 +1,5 @@
 
-import defaultErrorMap from "../locales/en";
+import defaultErrorMap from "../message";
 import type { ErrorData, ErrorMap, Issue } from "../error";
 import type { ZodParsedType } from "./util";
 
@@ -72,7 +72,6 @@ export function addIssueToContext(
     errorMaps: [
       ctx.common.contextualErrorMap, // contextual error map is first priority
       ctx.schemaErrorMap, // then schema-bound map if available
-      //getErrorMap(), // then global override map
       defaultErrorMap, // then global default map
     ].filter((x) => !!x) as ErrorMap[],
   });

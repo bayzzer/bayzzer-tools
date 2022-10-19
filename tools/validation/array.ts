@@ -1,6 +1,6 @@
-import { errorUtil } from "./helpers/errorUtil";
-import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
-import { ParsedType } from "./helpers/util";
+import { errorUtil } from "./utils/errorUtil";
+import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./utils/parseUtil";
+import { ParsedType } from "./utils/util";
 import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 

@@ -1,5 +1,5 @@
-import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
-import { util, ParsedType } from "./helpers/util";
+import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./utils/parseUtil";
+import { util, ParsedType } from "./utils/util";
 import { processCreateParams, RawCreateParams, RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 
