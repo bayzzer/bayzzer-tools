@@ -19,15 +19,14 @@ export interface InvalidType extends ErrorBase {
   received: ZodParsedType;
 }
 
-
 export type StringValidation =
   | "email"
   | "url"
   | "uuid"
   | "regex"
   | "cuid"
-  | { startsWith: string }
-  | { endsWith: string }
+  | { startWith: string }
+  | { endWith: string }
 
 export interface InvalidString extends ErrorBase {
   code: typeof ErrorCode.invalid_string;
@@ -64,12 +63,8 @@ export type Issue = InvalidOptionalMessage & { message: string }
 export class ValidateError<T = any> extends Error {
   issues: Issue[] = []
 
-  get errors() {
-    return this.issues
-  }
-
   constructor(issues: Issue[]) {
-    super();
+    super()
 
     const actualProto = new.target.prototype
     if (Object.setPrototypeOf) {
@@ -77,7 +72,6 @@ export class ValidateError<T = any> extends Error {
     } else {
       (this as any).__proto__ = actualProto
     }
-    this.name = "ValidateError"
     this.issues = issues
   }  
 
@@ -88,22 +82,14 @@ export class ValidateError<T = any> extends Error {
 
   get message() {
     return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2)
-  } 
-
-  addIssue = (sub: Issue) => {
-    this.issues = [...this.issues, sub]
-  }
-
-  addIssues = (subs: Issue[] = []) => {
-    this.issues = [...this.issues, ...subs]
-  }
+  }   
 }
 
-type stripPath<T extends object> = T extends any
+type StripPath<T extends object> = T extends any
   ? util.OmitKeys<T, "path">
   : never
 
-export type ErrorData = stripPath<InvalidOptionalMessage> & {
+export type ErrorData = StripPath<InvalidOptionalMessage> & {
   path?: (string | number)[]
   fatal?: boolean
 }

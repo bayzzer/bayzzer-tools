@@ -64,10 +64,10 @@ export const Immutable = () => {
 
     const testString = async () => {
         const schema: SchemaOf<User> = object({
-            username: string().refine((val) => val.length <= 2, {
+            username: string().add((val) => val.length <= 2, {
                 message: "String can't be more than 2 characters",
             }),
-            password: string().min(2).max(4, 'max 4'),
+            password: string().min(2).max(4, 'max 4').regex(/^[A-Z]*$/),
             key: object({
                 values: string().array().max(2)
             })
@@ -81,8 +81,7 @@ export const Immutable = () => {
             }
         }
 
-        var r = await schema.parseAsync(user)
-    
+        var r = await schema.validate(user)
         console.log(r)
     }
 

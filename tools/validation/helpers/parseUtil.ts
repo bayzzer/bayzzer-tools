@@ -42,7 +42,7 @@ export type ParsePathComponent = string | number;
 export type ParsePath = ParsePathComponent[];
 export const EMPTY_PATH: ParsePath = [];
 
-export interface ParseContext {
+export interface ValidationContext {
   readonly common: {
     readonly issues: Issue[];
     readonly contextualErrorMap?: ErrorMap;
@@ -50,19 +50,19 @@ export interface ParseContext {
   };
   readonly path: ParsePath;
   readonly schemaErrorMap?: ErrorMap;
-  readonly parent: ParseContext | null;
+  readonly parent: ValidationContext | null;
   readonly data: any;
   readonly parsedType: ZodParsedType;
 }
 
-export type ParseInput = {
-  data: any;
-  path: (string | number)[];
-  parent: ParseContext;
+export type ValidationInput = {
+  data: any
+  path: (string | number)[]
+  parent: ValidationContext
 };
 
 export function addIssueToContext(
-  ctx: ParseContext,
+  ctx: ValidationContext,
   issueData: ErrorData
 ): void {
   const issue = makeIssue({

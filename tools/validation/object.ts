@@ -1,6 +1,6 @@
-import { addIssueToContext, INVALID, ParseInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
-import { util, ZodParsedType } from "./helpers/util";
-import { processCreateParams, RawCreateParams, RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationFirstKind, ValidationTypeDef } from "./types";
+import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
+import { util, ParsedType } from "./helpers/util";
+import { processCreateParams, RawCreateParams, RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 
 export namespace ObjectUtil {
@@ -46,7 +46,7 @@ export type ExtendShape<A, B> = Omit<A, keyof B> & B;
 export interface ObjectDef<
   T extends RawShape = RawShape,
 > extends ValidationTypeDef {
-  typeName: ValidationFirstKind.Object;
+  name: ValidationKind.Object;
   shape: () => T
 }
 
@@ -102,13 +102,13 @@ export class ValidationObject<
     return (this._cached = { shape, keys })
   }
 
-  _parse(input: ParseInput): ParseReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ParseReturnType<this["_output"]> {
     const parsedType = this._getType(input);
-    if (parsedType !== ZodParsedType.object) {
+    if (parsedType !== ParsedType.object) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
         code: ErrorCode.invalid_type,
-        expected: ZodParsedType.object,
+        expected: ParsedType.object,
         received: ctx.parsedType,
       });
       return INVALID
@@ -128,7 +128,7 @@ export class ValidationObject<
       const value = ctx.data[key];
       pairs.push({
         key: { status: "valid", value: key },
-        value: keyValidator._parse(
+        value: keyValidator._validation(
           new ValidateInputLazyPath(ctx, value, ctx.path, key)
         ),
         alwaysSet: key in ctx.data,
@@ -163,7 +163,7 @@ export class ValidationObject<
   ): ValidationObject<T> => {
     return new ValidationObject({
       shape: () => shape,
-      typeName: ValidationFirstKind.Object,
+      name: ValidationKind.Object,
       ...processCreateParams(params),
     }) as any;
   }

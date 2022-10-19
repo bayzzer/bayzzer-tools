@@ -49,80 +49,29 @@ export namespace util {
   };
 }
 
-export const ZodParsedType = util.arrayToEnum([
-  "string",
-  "nan",
-  "number",
-  "integer",
-  "float",
-  "boolean",
-  "date",
-  "bigint",
-  "symbol",
-  "function",
-  "undefined",
-  "null",
+export const ParsedType = util.arrayToEnum([
+  "string",  
   "array",
   "object",
-  "unknown",
-  "promise",
-  "void",
-  "never",
-  "map",
-  "set",
+  "unknown"
 ]);
 
-export type ZodParsedType = keyof typeof ZodParsedType;
+export type ZodParsedType = keyof typeof ParsedType;
 
 export const getParsedType = (data: any): ZodParsedType => {
   const t = typeof data;
 
   switch (t) {
-    case "undefined":
-      return ZodParsedType.undefined;
-
     case "string":
-      return ZodParsedType.string;
-
-    case "number":
-      return isNaN(data) ? ZodParsedType.nan : ZodParsedType.number;
-
-    case "boolean":
-      return ZodParsedType.boolean;
-
-    case "function":
-      return ZodParsedType.function;
-
-    case "bigint":
-      return ZodParsedType.bigint;
+      return ParsedType.string;   
 
     case "object":
       if (Array.isArray(data)) {
-        return ZodParsedType.array;
-      }
-      if (data === null) {
-        return ZodParsedType.null;
-      }
-      if (
-        data.then &&
-        typeof data.then === "function" &&
-        data.catch &&
-        typeof data.catch === "function"
-      ) {
-        return ZodParsedType.promise;
-      }
-      if (typeof Map !== "undefined" && data instanceof Map) {
-        return ZodParsedType.map;
-      }
-      if (typeof Set !== "undefined" && data instanceof Set) {
-        return ZodParsedType.set;
-      }
-      if (typeof Date !== "undefined" && data instanceof Date) {
-        return ZodParsedType.date;
-      }
-      return ZodParsedType.object;
+        return ParsedType.array;
+      }      
+      return ParsedType.object;
 
     default:
-      return ZodParsedType.unknown;
+      return ParsedType.unknown;
   }
 };

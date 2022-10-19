@@ -1,19 +1,19 @@
 import { errorUtil } from "./helpers/errorUtil";
-import { addIssueToContext, INVALID, ParseInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
-import { ZodParsedType } from "./helpers/util";
-import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationFirstKind, ValidationTypeDef } from "./types";
+import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./helpers/parseUtil";
+import { ParsedType } from "./helpers/util";
+import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 
 export interface ArrayDef<T extends ValidateAnyType = ValidateAnyType>
   extends ValidationTypeDef {
   type: T;
-  typeName: ValidationFirstKind.Array;
+  name: ValidationKind.Array;
   minLength: { value: number; message?: string } | null;
   maxLength: { value: number; message?: string } | null;
 }
 
 export type ArrayCardinality = "many" | "atleastone";
-type arrayOutputType<
+type ArrayOutputType<
   T extends ValidateAnyType,
   Cardinality extends ArrayCardinality = "many"
 > = Cardinality extends "atleastone"
@@ -24,21 +24,21 @@ export class ValidationArray<
   T extends ValidateAnyType,
   Cardinality extends ArrayCardinality = "many"
 > extends SchemaOf<
-  arrayOutputType<T, Cardinality>,
+  ArrayOutputType<T, Cardinality>,
   ArrayDef<T>,
   Cardinality extends "atleastone"
   ? [T["_input"], ...T["_input"][]]
   : T["_input"][]
 > {
-  _parse(input: ParseInput): ParseReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ParseReturnType<this["_output"]> {
     const { ctx, status } = this._processInputParams(input);
 
     const def = this._def;
 
-    if (ctx.parsedType !== ZodParsedType.array) {
+    if (ctx.parsedType !== ParsedType.array) {
       addIssueToContext(ctx, {
         code: ErrorCode.invalid_type,
-        expected: ZodParsedType.array,
+        expected: ParsedType.array,
         received: ctx.parsedType,
       });
       return INVALID;
@@ -73,7 +73,7 @@ export class ValidationArray<
     if (ctx.common.async) {
       return Promise.all(
         (ctx.data as any[]).map((item, i) => {
-          return def.type._parseAsync(
+          return def.type._validateAsync(
             new ValidateInputLazyPath(ctx, item, ctx.path, i)
           );
         })
@@ -83,17 +83,13 @@ export class ValidationArray<
     }
 
     const result = (ctx.data as any[]).map((item, i) => {
-      return def.type._parseSync(
+      return def.type._validateSync(
         new ValidateInputLazyPath(ctx, item, ctx.path, i)
-      );
-    });
+      )
+    })
 
     return ParseStatus.mergeArray(status, result);
-  }
-
-  get element() {
-    return this._def.type;
-  }
+  } 
 
   min(minLength: number, message?: errorUtil.ErrMessage): this {
     return new ValidationArray({
@@ -125,10 +121,8 @@ export class ValidationArray<
       type: schema,
       minLength: null,
       maxLength: null,
-      typeName: ValidationFirstKind.Array,
+      name: ValidationKind.Array,
       ...processCreateParams(params),
-    });
-  };
+    })
+  }
 }
-
-export type ValidationNonEmptyArray<T extends ValidateAnyType> = ValidationArray<T, "atleastone">;
