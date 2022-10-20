@@ -12,7 +12,7 @@ import {
   ValidateReturnType,
   ValidateStatus,
   SyncValidateReturnType,
-} from "./utils/parseUtil";
+} from "./utils/validationUtil";
 import { getValidationType, util } from "./utils/util"
 import {
   ErrorData,

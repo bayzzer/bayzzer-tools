@@ -18,8 +18,8 @@ export namespace util {
   }
 
   export const objectKeys: ObjectConstructor["keys"] =
-    typeof Object.keys === "function" // eslint-disable-line ban/ban
-      ? (obj: any) => Object.keys(obj) // eslint-disable-line ban/ban
+    typeof Object.keys === "function"
+      ? (obj: any) => Object.keys(obj)
       : (object: any) => {
         const keys = [];
         for (const key in object) {
@@ -28,7 +28,7 @@ export namespace util {
           }
         }
         return keys;
-      }  
+      }
 }
 
 export const ValidationEnum = util.arrayToEnum([
