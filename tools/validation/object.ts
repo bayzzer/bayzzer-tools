@@ -1,10 +1,9 @@
-import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./utils/parseUtil";
-import { util, ParsedType } from "./utils/util";
+import { addIssueToContext, INVALID, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/parseUtil";
+import { util, ValidationEnum } from "./utils/util";
 import { processCreateParams, RawCreateParams, RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 
-export namespace ObjectUtil {
-  
+export namespace ObjectUtil {  
 
   type OptionalKeys<T extends object> = {
     [k in keyof T]: undefined extends T[k] ? k : never;
@@ -20,29 +19,8 @@ export namespace ObjectUtil {
     Pick<T, RequiredKeys<T>>;
 
   export type Identity<T> = T;
-  export type Flatten<T extends object> = Identity<{ [k in keyof T]: T[k] }>;
-
-  export type NoNeverKeys<T extends RawShape> = {
-    [k in keyof T]: [T[k]] extends [never] ? never : k;
-  }[keyof T];
-
-  export type NoNever<T extends RawShape> = Identity<{
-    [k in NoNeverKeys<T>]: k extends keyof T ? T[k] : never;
-  }>;
-
-  export const mergeShapes = <U extends RawShape, T extends RawShape>(
-    first: U,
-    second: T
-  ): T & U => {
-    return {
-      ...first,
-      ...second, // second overwrites first
-    };
-  };
+  export type Flatten<T extends object> = Identity<{ [k in keyof T]: T[k] }>  
 }
-
-export type ExtendShape<A, B> = Omit<A, keyof B> & B;
-
 export interface ObjectDef<
   T extends RawShape = RawShape,
 > extends ValidationTypeDef {
@@ -59,11 +37,11 @@ export type BaseObjectOutputType<Shape extends RawShape> =
 
 export type ObjectOutputType<
   Shape extends RawShape,
-  Catchall extends ValidateAnyType
-> = ValidateAnyType extends Catchall
+  Catch extends ValidateAnyType
+> = ValidateAnyType extends Catch
   ? BaseObjectOutputType<Shape>
   : ObjectUtil.Flatten<
-    BaseObjectOutputType<Shape> & { [k: string]: Catchall["_output"] }
+    BaseObjectOutputType<Shape> & { [k: string]: Catch["_output"] }
   >;
 
 export type BaseObjectInputType<Shape extends RawShape> = ObjectUtil.Flatten<
@@ -74,24 +52,17 @@ export type BaseObjectInputType<Shape extends RawShape> = ObjectUtil.Flatten<
 
 export type ObjectInputType<
   Shape extends RawShape,
-  Catchall extends ValidateAnyType
-> = ValidateAnyType extends Catchall
+  Catch extends ValidateAnyType
+> = ValidateAnyType extends Catch
   ? BaseObjectInputType<Shape>
   : ObjectUtil.Flatten<
-    BaseObjectInputType<Shape> & { [k: string]: Catchall["_input"] }
-  >;
-
-export type SomeObject = ValidationObject<
-  RawShape,
-  ValidateAnyType,
-  any,
-  any
->
+    BaseObjectInputType<Shape> & { [k: string]: Catch["_input"] }
+  >
 export class ValidationObject<
   T extends RawShape,
-  Catchall extends ValidateAnyType = ValidateAnyType,
-  Output = ObjectOutputType<T, Catchall>,
-  Input = ObjectInputType<T, Catchall>
+  Catch extends ValidateAnyType = ValidateAnyType,
+  Output = ObjectOutputType<T, Catch>,
+  Input = ObjectInputType<T, Catch>
 > extends SchemaOf<Output, ObjectDef<T>, Input> {
   private _cached: { shape: T; keys: string[] } | null = null;
 
@@ -102,13 +73,13 @@ export class ValidationObject<
     return (this._cached = { shape, keys })
   }
 
-  _validation(input: ValidationInput): ParseReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
     const parsedType = this._getType(input);
-    if (parsedType !== ParsedType.object) {
+    if (parsedType !== ValidationEnum.object) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(ctx, {
         code: ErrorCode.invalid_type,
-        expected: ParsedType.object,
+        expected: ValidationEnum.object,
         received: ctx.parsedType,
       });
       return INVALID
@@ -119,8 +90,8 @@ export class ValidationObject<
     const { shape, keys: shapeKeys } = this._getCached()
 
     const pairs: {
-      key: ParseReturnType<any>;
-      value: ParseReturnType<any>;
+      key: ValidateReturnType<any>;
+      value: ValidateReturnType<any>;
       alwaysSet?: boolean;
     }[] = []
     for (const key of shapeKeys) {
@@ -150,10 +121,10 @@ export class ValidationObject<
           return syncPairs;
         })
         .then((syncPairs) => {
-          return ParseStatus.mergeObjectSync(status, syncPairs);
+          return ValidateStatus.mergeObjectSync(status, syncPairs);
         });
     } else {
-      return ParseStatus.mergeObjectSync(status, pairs as any);
+      return ValidateStatus.mergeObjectSync(status, pairs as any);
     }
   }    
   

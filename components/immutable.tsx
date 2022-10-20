@@ -64,9 +64,9 @@ export const Immutable = () => {
 
     const testString = async () => {
         const schema: SchemaOf<User> = object({
-            username: string().add((val) => val.length <= 2, {
-                message: "String can't be more than 2 characters",
-            }),
+            username: string().add((val) => val.length > 2, {
+                message: "String can be more than 2 characters",
+            }).convert(val => val.toUpperCase()),
             password: string().min(2).max(4, 'max 4').regex(/^[A-Z]*$/),
             key: object({
                 values: string().array().max(2)
@@ -74,8 +74,8 @@ export const Immutable = () => {
         })
 
         var user: User = {
-            username: 'ur4545',
-            password: '***7ty',
+            username: 'u4',
+            password: 'PA-SW',
             key: {
                 values: ['rtr', 'trt', 'trt']
             }

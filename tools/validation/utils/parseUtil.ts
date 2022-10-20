@@ -1,7 +1,7 @@
 
 import defaultErrorMap from "../message";
 import type { ErrorData, ErrorMap, Issue } from "../error";
-import type { ZodParsedType } from "./util";
+import type { ValidationType } from "./util";
 
 export const makeIssue = (params: {
   data: any;
@@ -32,15 +32,15 @@ export const makeIssue = (params: {
   };
 };
 
-export type ParseParams = {
+export type ValidationParams = {
   path: (string | number)[];
   errorMap: ErrorMap;
   async: boolean;
 };
 
-export type ParsePathComponent = string | number;
-export type ParsePath = ParsePathComponent[];
-export const EMPTY_PATH: ParsePath = [];
+export type ValidationPathComponent = string | number;
+export type ValidationPath = ValidationPathComponent[];
+export const EMPTY_PATH: ValidationPath = [];
 
 export interface ValidationContext {
   readonly common: {
@@ -48,11 +48,11 @@ export interface ValidationContext {
     readonly contextualErrorMap?: ErrorMap;
     readonly async: boolean;
   };
-  readonly path: ParsePath;
+  readonly path: ValidationPath;
   readonly schemaErrorMap?: ErrorMap;
   readonly parent: ValidationContext | null;
   readonly data: any;
-  readonly parsedType: ZodParsedType;
+  readonly parsedType: ValidationType;
 }
 
 export type ValidationInput = {
@@ -77,12 +77,7 @@ export function addIssueToContext(
   });
   ctx.common.issues.push(issue);
 }
-
-export type ObjectPair = {
-  key: SyncParseReturnType<any>;
-  value: SyncParseReturnType<any>;
-};
-export class ParseStatus {
+export class ValidateStatus {
   value: "aborted" | "dirty" | "valid" = "valid";
   dirty() {
     if (this.value === "valid") this.value = "dirty";
@@ -92,9 +87,9 @@ export class ParseStatus {
   }
 
   static mergeArray(
-    status: ParseStatus,
-    results: SyncParseReturnType<any>[]
-  ): SyncParseReturnType {
+    status: ValidateStatus,
+    results: SyncValidateReturnType<any>[]
+  ): SyncValidateReturnType {
     const arrayValue: any[] = [];
     for (const s of results) {
       if (s.status === "aborted") return INVALID;
@@ -103,30 +98,16 @@ export class ParseStatus {
     }
 
     return { status: status.value, value: arrayValue };
-  }
-
-  static async mergeObjectAsync(
-    status: ParseStatus,
-    pairs: { key: ParseReturnType<any>; value: ParseReturnType<any> }[]
-  ): Promise<SyncParseReturnType<any>> {
-    const syncPairs: ObjectPair[] = [];
-    for (const pair of pairs) {
-      syncPairs.push({
-        key: await pair.key,
-        value: await pair.value,
-      });
-    }
-    return ParseStatus.mergeObjectSync(status, syncPairs);
-  }
+  } 
 
   static mergeObjectSync(
-    status: ParseStatus,
+    status: ValidateStatus,
     pairs: {
-      key: SyncParseReturnType<any>;
-      value: SyncParseReturnType<any>;
+      key: SyncValidateReturnType<any>;
+      value: SyncValidateReturnType<any>;
       alwaysSet?: boolean;
     }[]
-  ): SyncParseReturnType {
+  ): SyncValidateReturnType {
     const finalObject: any = {};
     for (const pair of pairs) {
       const { key, value } = pair;
@@ -155,19 +136,19 @@ export const DIRTY = <T>(value: T): DIRTY<T> => ({ status: "dirty", value });
 export type OK<T> = { status: "valid"; value: T };
 export const OK = <T>(value: T): OK<T> => ({ status: "valid", value });
 
-export type SyncParseReturnType<T = any> = OK<T> | DIRTY<T> | INVALID;
-export type AsyncParseReturnType<T> = Promise<SyncParseReturnType<T>>;
-export type ParseReturnType<T> =
-  | SyncParseReturnType<T>
-  | AsyncParseReturnType<T>;
+export type SyncValidateReturnType<T = any> = OK<T> | DIRTY<T> | INVALID;
+export type AsyncValidateReturnType<T> = Promise<SyncValidateReturnType<T>>
+export type ValidateReturnType<T> =
+  | SyncValidateReturnType<T>
+  | AsyncValidateReturnType<T>
 
-export const isAborted = (x: ParseReturnType<any>): x is INVALID =>
+export const isAborted = (x: ValidateReturnType<any>): x is INVALID =>
   (x as any).status === "aborted";
-export const isDirty = <T>(x: ParseReturnType<T>): x is OK<T> | DIRTY<T> =>
+export const isDirty = <T>(x: ValidateReturnType<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "dirty";
-export const isValid = <T>(x: ParseReturnType<T>): x is OK<T> | DIRTY<T> =>
+export const isValid = <T>(x: ValidateReturnType<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "valid";
 export const isAsync = <T>(
-  x: ParseReturnType<T>
-): x is AsyncParseReturnType<T> =>
-  typeof Promise !== undefined && x instanceof Promise;
+  x: ValidateReturnType<T>
+): x is AsyncValidateReturnType<T> =>
+  typeof Promise !== undefined && x instanceof Promise

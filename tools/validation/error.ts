@@ -1,4 +1,4 @@
-import { util, ZodParsedType } from "./utils/util"
+import { util, ValidationType } from "./utils/util"
 
 export const ErrorCode = util.arrayToEnum([
   "invalid_type",
@@ -15,8 +15,8 @@ export type ErrorBase = {
 
 export interface InvalidType extends ErrorBase {
   code: typeof ErrorCode.invalid_type;
-  expected: ZodParsedType;
-  received: ZodParsedType;
+  expected: ValidationType;
+  received: ValidationType;
 }
 
 export type StringValidation =
@@ -81,7 +81,7 @@ export class ValidateError<T = any> extends Error {
   }
 
   get message() {
-    return JSON.stringify(this.issues, util.jsonStringifyReplacer, 2)
+    return JSON.stringify(this.issues, null, 2)
   }   
 }
 

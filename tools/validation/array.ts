@@ -1,6 +1,6 @@
 import { errorUtil } from "./utils/errorUtil";
-import { addIssueToContext, INVALID, ValidationInput, ParseReturnType, ParseStatus } from "./utils/parseUtil";
-import { ParsedType } from "./utils/util";
+import { addIssueToContext, INVALID, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/parseUtil";
+import { ValidationEnum } from "./utils/util";
 import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
 
@@ -30,15 +30,15 @@ export class ValidationArray<
   ? [T["_input"], ...T["_input"][]]
   : T["_input"][]
 > {
-  _validation(input: ValidationInput): ParseReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
     const { ctx, status } = this._processInputParams(input);
 
     const def = this._def;
 
-    if (ctx.parsedType !== ParsedType.array) {
+    if (ctx.parsedType !== ValidationEnum.array) {
       addIssueToContext(ctx, {
         code: ErrorCode.invalid_type,
-        expected: ParsedType.array,
+        expected: ValidationEnum.array,
         received: ctx.parsedType,
       });
       return INVALID;
@@ -78,7 +78,7 @@ export class ValidationArray<
           );
         })
       ).then((result) => {
-        return ParseStatus.mergeArray(status, result);
+        return ValidateStatus.mergeArray(status, result);
       });
     }
 
@@ -88,7 +88,7 @@ export class ValidationArray<
       )
     })
 
-    return ParseStatus.mergeArray(status, result);
+    return ValidateStatus.mergeArray(status, result);
   } 
 
   min(minLength: number, message?: errorUtil.ErrMessage): this {

@@ -1,19 +1,19 @@
 import { ValidationArray } from "./array"
 import {
   addIssueToContext,
-  AsyncParseReturnType,
+  AsyncValidateReturnType,
   INVALID,
   isAsync,
   isValid,
   ValidationContext,
   ValidationInput,
-  ParseParams,
-  ParsePath,
-  ParseReturnType,
-  ParseStatus,
-  SyncParseReturnType,
+  ValidationParams,
+  ValidationPath,
+  ValidateReturnType,
+  ValidateStatus,
+  SyncValidateReturnType,
 } from "./utils/parseUtil";
-import { getParsedType, util } from "./utils/util"
+import { getValidationType, util } from "./utils/util"
 import {
   ErrorData,
   CustomError,
@@ -36,12 +36,12 @@ export interface ValidationTypeDef {
 export class ValidateInputLazyPath implements ValidationInput {
   parent: ValidationContext;
   data: any;
-  _path: ParsePath;
+  _path: ValidationPath;
   _key: string | number | (string | number)[]
   constructor(
     parent: ValidationContext,
     value: any,
-    path: ParsePath,
+    path: ValidationPath,
     key: string | number | (string | number)[]
   ) {
     this.parent = parent
@@ -56,7 +56,7 @@ export class ValidateInputLazyPath implements ValidationInput {
 
 const handleResult = <Input, Output>(
   ctx: ValidationContext,
-  result: SyncParseReturnType<Output>
+  result: SyncValidateReturnType<Output>
 ):
   | { success: true; data: Output }
   | { success: false; error: ValidateError<Input> } => {
@@ -125,10 +125,10 @@ export abstract class SchemaOf<
   readonly _input!: Input
   readonly _def!: Def  
 
-  abstract _validation(input: ValidationInput): ParseReturnType<Output>
+  abstract _validation(input: ValidationInput): ValidateReturnType<Output>
 
   _getType(input: ValidationInput): string {
-    return getParsedType(input.data)
+    return getValidationType(input.data)
   }
 
   _getOrReturnCtx(
@@ -140,7 +140,7 @@ export abstract class SchemaOf<
         common: input.parent.common,
         data: input.data,
 
-        parsedType: getParsedType(input.data),
+        parsedType: getValidationType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
@@ -150,16 +150,16 @@ export abstract class SchemaOf<
   }
 
   _processInputParams(input: ValidationInput): {
-    status: ParseStatus
+    status: ValidateStatus
     ctx: ValidationContext
   } {
     return {
-      status: new ParseStatus(),
+      status: new ValidateStatus(),
       ctx: {
         common: input.parent.common,
         data: input.data,
 
-        parsedType: getParsedType(input.data),
+        parsedType: getValidationType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
@@ -168,7 +168,7 @@ export abstract class SchemaOf<
     };
   }
 
-  _validateSync(input: ValidationInput): SyncParseReturnType<Output> {
+  _validateSync(input: ValidationInput): SyncValidateReturnType<Output> {
     const result = this._validation(input);
     if (isAsync(result)) {
       throw new Error("Synchronous parse encountered promise.");
@@ -176,7 +176,7 @@ export abstract class SchemaOf<
     return result;
   }
 
-  _validateAsync(input: ValidationInput): AsyncParseReturnType<Output> {
+  _validateAsync(input: ValidationInput): AsyncValidateReturnType<Output> {
     const result = this._validation(input);
 
     return Promise.resolve(result);
@@ -184,7 +184,7 @@ export abstract class SchemaOf<
 
   async validate(
     data: unknown,
-    params?: Partial<ParseParams>
+    params?: Partial<ValidationParams>
   ): Promise<SafeParseReturnType<Input, Output>> {
     const ctx: ValidationContext = {
       common: {
@@ -196,7 +196,7 @@ export abstract class SchemaOf<
       schemaErrorMap: this._def.errorMap,
       parent: null,
       data,
-      parsedType: getParsedType(data),
+      parsedType: getValidationType(data),
     };
 
     const maybeAsyncResult = this._validation({ data, path: [], parent: ctx });
@@ -268,20 +268,20 @@ export abstract class SchemaOf<
     this.validate = this.validate.bind(this)
     this.add = this.add.bind(this)
     this.array = this.array.bind(this)
-    this.transform = this.transform.bind(this)
+    this.convert = this.convert.bind(this)
   }
 
   array(): ValidationArray<this> {
     return ValidationArray.create(this);
   }
 
-  transform<NewOut>(
-    transform: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>
+  convert<NewOut>(
+    convert: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>
   ): ValidationEffects<this, NewOut> {
     return new ValidationEffects({
       schema: this,
       name: ValidationKind.Effects,
-      effect: { type: "transform", transform },
+      effect: { type: "convert", convert: convert },
     }) as any;
   } 
 }
@@ -290,14 +290,14 @@ export type RefinementEffect<T> = {
   type: "refinement";
   refinement: (arg: T, ctx: RefinementCtx) => any;
 };
-export type TransformEffect<T> = {
-  type: "transform";
-  transform: (arg: T, ctx: RefinementCtx) => any;
+export type ConvertEffect<T> = {
+  type: "convert";
+  convert: (arg: T, ctx: RefinementCtx) => any;
 };
 
 export type Effect<T> =
   | RefinementEffect<T>
-  | TransformEffect<T>
+  | ConvertEffect<T>
 
 export interface EffectsDef<T extends ValidateAnyType = ValidateAnyType>
   extends ValidationTypeDef {
@@ -312,7 +312,7 @@ export class ValidationEffects<
   Input = T["_input"]
 > extends SchemaOf<Output, EffectsDef<T>, Input> {
   
-  _validation(input: ValidationInput): ParseReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
     const { status, ctx } = this._processInputParams(input);
 
     const effect = this._def.effect || null;    
@@ -342,7 +342,7 @@ export class ValidationEffects<
         }
         if (result instanceof Promise) {
           throw new Error(
-            "Async refinement encountered during synchronous parse operation. Use .parseAsync instead."
+            "Refinement async operation."
           );
         }
         return acc
@@ -374,7 +374,7 @@ export class ValidationEffects<
       }
     }
 
-    if (effect.type === "transform") {
+    if (effect.type === "convert") {
       if (ctx.common.async === false) {
         const base = this._def.schema._validateSync({
           data: ctx.data,
@@ -384,10 +384,10 @@ export class ValidationEffects<
 
         if (!isValid(base)) return base;
 
-        const result = effect.transform(base.value, checkCtx);
+        const result = effect.convert(base.value, checkCtx);
         if (result instanceof Promise) {
           throw new Error(
-            `Asynchronous transform encountered during synchronous parse operation. Use .parseAsync instead.`
+            `Convert async operation.`
           );
         }
 
@@ -397,7 +397,7 @@ export class ValidationEffects<
           ._validateAsync({ data: ctx.data, path: ctx.path, parent: ctx })
           .then((base) => {
             if (!isValid(base)) return base
-            return Promise.resolve(effect.transform(base.value, checkCtx)).then(
+            return Promise.resolve(effect.convert(base.value, checkCtx)).then(
               (result) => ({ status: status.value, value: result })
             );
           });

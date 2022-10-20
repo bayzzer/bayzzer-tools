@@ -1,6 +1,6 @@
 import { errorUtil } from "./utils/errorUtil";
-import { addIssueToContext, INVALID, ValidationContext, ValidationInput, ParseReturnType, ParseStatus } from "./utils/parseUtil";
-import { util, ParsedType } from "./utils/util";
+import { addIssueToContext, INVALID, ValidationContext, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/parseUtil";
+import { util, ValidationEnum } from "./utils/util";
 import { processCreateParams, RawCreateParams, SchemaOf, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error"
 
@@ -21,23 +21,23 @@ export interface StringDef extends ValidationTypeDef {
 const emailRegex = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 
 export class ValidationString extends SchemaOf<string, StringDef> {
-  _validation(input: ValidationInput): ParseReturnType<string> {
+  _validation(input: ValidationInput): ValidateReturnType<string> {
     const parsedType = this._getType(input);
 
-    if (parsedType !== ParsedType.string) {
+    if (parsedType !== ValidationEnum.string) {
       const ctx = this._getOrReturnCtx(input);
       addIssueToContext(
         ctx,
         {
           code: ErrorCode.invalid_type,
-          expected: ParsedType.string,
+          expected: ValidationEnum.string,
           received: ctx.parsedType,
         }
       );
       return INVALID
     }
 
-    const status = new ParseStatus();
+    const status = new ValidateStatus();
     let ctx: undefined | ValidationContext = undefined
 
     for (const check of this._def.checks) {
