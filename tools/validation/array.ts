@@ -1,8 +1,8 @@
 import { errorUtil } from "./utils/errorUtil";
-import { addIssueToContext, INVALID, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/validationUtil";
-import { ValidationEnum } from "./utils/util";
-import { processCreateParams, RawCreateParams, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
+import { addIssueToContext, ValidationInput, ValidateReturn, ValidateStatus, INVALID } from './utils/validationUtil';
+import { SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 import { ErrorCode } from "./error";
+import { ValidationEnum } from "./utils/util";
 
 export interface ArrayDef<T extends ValidateAnyType = ValidateAnyType>
   extends ValidationTypeDef {
@@ -30,18 +30,18 @@ export class ValidationArray<
   ? [T["_input"], ...T["_input"][]]
   : T["_input"][]
 > {
-  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
+  _validation(input: ValidationInput): ValidateReturn<this["_output"]> {
     const { ctx, status } = this._processInputParams(input);
 
-    const def = this._def;
+    let def = this._def
 
     if (ctx.parsedType !== ValidationEnum.array) {
       addIssueToContext(ctx, {
         code: ErrorCode.invalid_type,
         expected: ValidationEnum.array,
         received: ctx.parsedType,
-      });
-      return INVALID;
+      })
+      return INVALID
     }
 
     if (def.minLength !== null) {
@@ -88,7 +88,7 @@ export class ValidationArray<
       )
     })
 
-    return ValidateStatus.mergeArray(status, result);
+    return ValidateStatus.mergeArray(status, result)
   } 
 
   min(minLength: number, message?: errorUtil.ErrMessage): this {
@@ -114,15 +114,13 @@ export class ValidationArray<
   }
 
   static create = <T extends ValidateAnyType>(
-    schema: T,
-    params?: RawCreateParams
+    schema: T
   ): ValidationArray<T> => {
     return new ValidationArray({
       type: schema,
       minLength: null,
       maxLength: null,
-      name: ValidationKind.Array,
-      ...processCreateParams(params),
+      name: ValidationKind.Array
     })
   }
 }

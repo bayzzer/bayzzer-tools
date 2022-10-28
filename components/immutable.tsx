@@ -25,10 +25,13 @@ export const Immutable = () => {
         list: string[],
         pez: () => void
     }
-    
+
     type User = {
         username: string
         password: string
+        other?: string
+        obj?: {id?:string}
+        arr?: string[]
         key: {
             values: string[]
         }
@@ -64,24 +67,49 @@ export const Immutable = () => {
 
     const testString = async () => {
         const schema: SchemaOf<User> = object({
+            other: string().required('*required').min(3),
+            obj: object({
+                id: string().required('required value')
+            }),
+            arr: string().array().nonempty('No empty please'),
             username: string().add((val) => val.length > 2, {
                 message: "String can be more than 2 characters",
             }).convert(val => val.toUpperCase()),
-            password: string().min(2).max(4, 'max 4').regex(/^[A-Z]*$/),
+            password: string(),//.min(2).max(4, 'max 4').regex(/^[A-Z]*$/).email(),
             key: object({
                 values: string().array().max(2)
             })
         })
+        // const schema: SchemaOf<User> = object({
+        //     username: string().add((val) => val.length > 2, {
+        //         message: "String can be more than 2 characters",
+        //     }).convert(val => val.toUpperCase()),
+        //     password: string().min(2).max(4, 'max 4').regex(/^[A-Z]*$/),
+        //     key: object({
+        //         values: string().array().max(4)
+        //     })
+        // })
+        // var user: User = {
+        //     username: 'u4t',
+        //     password: 'PASW',
+        //     key: {
+        //         values: ['rtr', 'trt', 'trt']
+        //     }
+        // }
 
         var user: User = {
             username: 'u4',
-            password: 'PA-SW',
+            password: '',
+            other: '´p',
+            //obj: {},
+            //arr: [],
             key: {
                 values: ['rtr', 'trt', 'trt']
             }
         }
 
         var r = await schema.validate(user)
+        
         console.log(r)
     }
 

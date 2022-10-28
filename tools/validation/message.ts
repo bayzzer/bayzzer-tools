@@ -1,4 +1,4 @@
-import { util} from "./utils/util";
+import { util } from "./utils/util";
 import { ErrorMap, ErrorCode } from "./error";
 
 const errorMap: ErrorMap = (issue, _ctx) => {
@@ -24,28 +24,27 @@ const errorMap: ErrorMap = (issue, _ctx) => {
       break;
     case ErrorCode.too_small:
       if (issue.type === "array")
-        message = `Array must contain ${
-          issue.inclusive ? `at least` : `more than`
-        } ${issue.minimum} element(s)`;
+        message = `Array must contain ${issue.inclusive ? `at least` : `more than`
+          } ${issue.minimum} element(s)`;
       else if (issue.type === "string")
-        message = `String must contain ${
-          issue.inclusive ? `at least` : `over`
-        } ${issue.minimum} character(s)`;      
+        message = `String must contain ${issue.inclusive ? `at least` : `over`
+          } ${issue.minimum} character(s)`;
       else message = "Invalid input";
       break;
     case ErrorCode.too_big:
       if (issue.type === "array")
-        message = `Array must contain ${
-          issue.inclusive ? `at most` : `less than`
-        } ${issue.maximum} element(s)`;
+        message = `Array must contain ${issue.inclusive ? `at most` : `less than`
+          } ${issue.maximum} element(s)`;
       else if (issue.type === "string")
-        message = `String must contain ${
-          issue.inclusive ? `at most` : `under`
-        } ${issue.maximum} character(s)`      
+        message = `String must contain ${issue.inclusive ? `at most` : `under`
+          } ${issue.maximum} character(s)`
       else message = "Invalid input";
       break;
     case ErrorCode.custom:
       message = `Invalid input`;
+      break;
+    case ErrorCode.required:
+      message = `Required input`;
       break;
     default:
       message = _ctx.defaultError;

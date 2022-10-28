@@ -88,8 +88,8 @@ export class ValidateStatus {
 
   static mergeArray(
     status: ValidateStatus,
-    results: SyncValidateReturnType<any>[]
-  ): SyncValidateReturnType {
+    results: ValidateSync<any>[]
+  ): ValidateSync {
     const arrayValue: any[] = [];
     for (const s of results) {
       if (s.status === "aborted") return INVALID;
@@ -103,11 +103,11 @@ export class ValidateStatus {
   static mergeObjectSync(
     status: ValidateStatus,
     pairs: {
-      key: SyncValidateReturnType<any>;
-      value: SyncValidateReturnType<any>;
+      key: ValidateSync<any>;
+      value: ValidateSync<any>;
       alwaysSet?: boolean;
     }[]
-  ): SyncValidateReturnType {
+  ): ValidateSync {
     const finalObject: any = {};
     for (const pair of pairs) {
       const { key, value } = pair;
@@ -136,19 +136,19 @@ export const DIRTY = <T>(value: T): DIRTY<T> => ({ status: "dirty", value });
 export type OK<T> = { status: "valid"; value: T };
 export const OK = <T>(value: T): OK<T> => ({ status: "valid", value });
 
-export type SyncValidateReturnType<T = any> = OK<T> | DIRTY<T> | INVALID;
-export type AsyncValidateReturnType<T> = Promise<SyncValidateReturnType<T>>
-export type ValidateReturnType<T> =
-  | SyncValidateReturnType<T>
-  | AsyncValidateReturnType<T>
+export type ValidateSync<T = any> = OK<T> | DIRTY<T> | INVALID;
+export type ValidateAsync<T> = Promise<ValidateSync<T>>
+export type ValidateReturn<T> =
+  | ValidateSync<T>
+  | ValidateAsync<T>
 
-export const isAborted = (x: ValidateReturnType<any>): x is INVALID =>
+export const isAborted = (x: ValidateReturn<any>): x is INVALID =>
   (x as any).status === "aborted";
-export const isDirty = <T>(x: ValidateReturnType<T>): x is OK<T> | DIRTY<T> =>
+export const isDirty = <T>(x: ValidateReturn<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "dirty";
-export const isValid = <T>(x: ValidateReturnType<T>): x is OK<T> | DIRTY<T> =>
+export const isValid = <T>(x: ValidateReturn<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "valid";
 export const isAsync = <T>(
-  x: ValidateReturnType<T>
-): x is AsyncValidateReturnType<T> =>
+  x: ValidateReturn<T>
+): x is ValidateAsync<T> =>
   typeof Promise !== undefined && x instanceof Promise

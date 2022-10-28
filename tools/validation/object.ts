@@ -1,7 +1,6 @@
-import { addIssueToContext, INVALID, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/validationUtil";
-import { util, ValidationEnum } from "./utils/util";
-import { processCreateParams, RawCreateParams, RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
-import { ErrorCode } from "./error";
+import { ValidationInput, ValidateReturn, ValidateStatus } from "./utils/validationUtil";
+import { util } from "./utils/util";
+import { RawShape, SchemaOf, ValidateAnyType, ValidateInputLazyPath, ValidationKind, ValidationTypeDef } from "./schema";
 
 export namespace ObjectUtil {  
 
@@ -73,25 +72,20 @@ export class ValidationObject<
     return (this._cached = { shape, keys })
   }
 
-  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
-    const parsedType = this._getType(input);
-    if (parsedType !== ValidationEnum.object) {
-      const ctx = this._getOrReturnCtx(input);
-      addIssueToContext(ctx, {
-        code: ErrorCode.invalid_type,
-        expected: ValidationEnum.object,
-        received: ctx.parsedType,
-      });
-      return INVALID
-    }
+  _validation(input: ValidationInput): ValidateReturn<this["_output"]> {
+   
+    var obj = input.data
+    if (obj === undefined || obj == null) {
+      input.data =  {}
+    }   
 
-    const { status, ctx } = this._processInputParams(input);
+    const { status, ctx } = this._processInputParams(input)
 
     const { shape, keys: shapeKeys } = this._getCached()
 
     const pairs: {
-      key: ValidateReturnType<any>;
-      value: ValidateReturnType<any>;
+      key: ValidateReturn<any>;
+      value: ValidateReturn<any>;
       alwaysSet?: boolean;
     }[] = []
     for (const key of shapeKeys) {
@@ -130,13 +124,11 @@ export class ValidationObject<
   
   static create = <T extends RawShape>(
     shape: T,
-    params?: RawCreateParams
   ): ValidationObject<T> => {
     return new ValidationObject({
       shape: () => shape,
-      name: ValidationKind.Object,
-      ...processCreateParams(params),
-    }) as any;
+      name: ValidationKind.Object
+    }) as any
   }
 }
 

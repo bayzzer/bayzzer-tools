@@ -1,7 +1,7 @@
 import { ValidationArray } from "./array"
 import {
   addIssueToContext,
-  AsyncValidateReturnType,
+  ValidateAsync,
   INVALID,
   isAsync,
   isValid,
@@ -9,17 +9,18 @@ import {
   ValidationInput,
   ValidationParams,
   ValidationPath,
-  ValidateReturnType,
+  ValidateReturn,
   ValidateStatus,
-  SyncValidateReturnType,
+  ValidateSync,
 } from "./utils/validationUtil";
 import { getValidationType, util } from "./utils/util"
 import {
   ErrorData,
   CustomError,
-  ValidateError,
+  //ValidateError,
   ErrorMap,
   ErrorCode,
+  Issue,
 } from "./error";
 
 export type RefinementCtx = {
@@ -56,19 +57,18 @@ export class ValidateInputLazyPath implements ValidationInput {
 
 const handleResult = <Input, Output>(
   ctx: ValidationContext,
-  result: SyncValidateReturnType<Output>
+  result: ValidateSync<Output>
 ):
-  | { success: true; data: Output }
-  | { success: false; error: ValidateError<Input> } => {
+  | { ok: true; data: Output }
+  | { ok: false; errors: Issue[] } => {
   if (isValid(result)) {
-    return { success: true, data: result.value };
+    return { ok: true, data: result.value };
   } else {
     var issuesCount = ctx.common.issues.length
     if (!issuesCount) {
       throw new Error(`Validation failed, without errors`)
     }
-    const error = new ValidateError(ctx.common.issues)
-    return { success: false, error }
+    return { ok: false, errors: ctx.common.issues }
   }
 }
 
@@ -108,12 +108,12 @@ export function processCreateParams(params: RawCreateParams): ProcessedCreatePar
   return { errorMap: customMap, description }
 }
 
-export type SafeParseSuccess<Output> = { success: true; data: Output }
-export type SafeParseError<Input> = { success: false; error: ValidateError<Input> }
+export type ValidationSuccess<Output> = { ok: true; data: Output }
+export type ValidationError<Input> = { ok: false; errors: Issue[] }
 
-export type SafeParseReturnType<Input, Output> =
-  | SafeParseSuccess<Output>
-  | SafeParseError<Input>;
+export type ValidationReturn<Input, Output> =
+  | ValidationSuccess<Output>
+  | ValidationError<Input>
 
 export abstract class SchemaOf<
   Output = any,
@@ -123,9 +123,9 @@ export abstract class SchemaOf<
   readonly _type!: Output
   readonly _output!: Output
   readonly _input!: Input
-  readonly _def!: Def  
+  readonly _def!: Def
 
-  abstract _validation(input: ValidationInput): ValidateReturnType<Output>
+  abstract _validation(input: ValidationInput): ValidateReturn<Output>
 
   _getType(input: ValidationInput): string {
     return getValidationType(input.data)
@@ -168,7 +168,7 @@ export abstract class SchemaOf<
     };
   }
 
-  _validateSync(input: ValidationInput): SyncValidateReturnType<Output> {
+  _validateSync(input: ValidationInput): ValidateSync<Output> {
     const result = this._validation(input);
     if (isAsync(result)) {
       throw new Error("Synchronous parse encountered promise.");
@@ -176,16 +176,16 @@ export abstract class SchemaOf<
     return result;
   }
 
-  _validateAsync(input: ValidationInput): AsyncValidateReturnType<Output> {
+  _validateAsync(input: ValidationInput): ValidateAsync<Output> {
     const result = this._validation(input);
 
     return Promise.resolve(result);
-  }  
+  }
 
   async validate(
     data: unknown,
     params?: Partial<ValidationParams>
-  ): Promise<SafeParseReturnType<Input, Output>> {
+  ): Promise<ValidationReturn<Input, Output>> {
     const ctx: ValidationContext = {
       common: {
         issues: [],
@@ -222,9 +222,9 @@ export abstract class SchemaOf<
       if (typeof message === "string" || typeof message === "undefined") {
         return { message };
       } else if (typeof message === "function") {
-        return message(val);
+        return message(val)
       } else {
-        return message;
+        return message
       }
     };
     return this._refinement((val, ctx) => {
@@ -250,8 +250,8 @@ export abstract class SchemaOf<
       } else {
         return true;
       }
-    });
-  }  
+    })
+  }
 
   _refinement(
     refinement: RefinementEffect<Output>["refinement"]
@@ -264,7 +264,7 @@ export abstract class SchemaOf<
   }
 
   constructor(def: Def) {
-    this._def = def    
+    this._def = def
     this.validate = this.validate.bind(this)
     this.add = this.add.bind(this)
     this.array = this.array.bind(this)
@@ -272,8 +272,8 @@ export abstract class SchemaOf<
   }
 
   array(): ValidationArray<this> {
-    return ValidationArray.create(this);
-  }
+    return ValidationArray.create(this)
+  }  
 
   convert<NewOut>(
     convert: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>
@@ -283,7 +283,7 @@ export abstract class SchemaOf<
       name: ValidationKind.Effects,
       effect: { type: "convert", convert: convert },
     }) as any;
-  } 
+  }
 }
 
 export type RefinementEffect<T> = {
@@ -311,11 +311,11 @@ export class ValidationEffects<
   Output = T["_output"],
   Input = T["_input"]
 > extends SchemaOf<Output, EffectsDef<T>, Input> {
-  
-  _validation(input: ValidationInput): ValidateReturnType<this["_output"]> {
+
+  _validation(input: ValidationInput): ValidateReturn<this["_output"]> {
     const { status, ctx } = this._processInputParams(input);
 
-    const effect = this._def.effect || null;    
+    const effect = this._def.effect || null;
 
     const checkCtx: RefinementCtx = {
       addIssue: (arg: ErrorData) => {
@@ -418,12 +418,12 @@ export class ValidationEffects<
       effect,
       ...processCreateParams(params),
     });
-  }  
+  }
 }
 
 export enum ValidationKind {
-  String = "String",  
+  String = "String",
   Array = "Array",
-  Object = "Object",  
-  Effects = "Effects"  
+  Object = "Object",
+  Effects = "Effects"
 }

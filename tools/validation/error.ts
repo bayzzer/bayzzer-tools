@@ -5,15 +5,16 @@ export const ErrorCode = util.arrayToEnum([
   "custom",
   "invalid_string",
   "too_small",
-  "too_big"
+  "too_big",
+  "required"
 ])
 
-export type ErrorBase = {
+export type ValidationErrorBase = {
   path: (string | number)[]
   message?: string
 }
 
-export interface InvalidType extends ErrorBase {
+export interface InvalidTypeError extends ValidationErrorBase {
   code: typeof ErrorCode.invalid_type;
   expected: ValidationType;
   received: ValidationType;
@@ -28,62 +29,63 @@ export type StringValidation =
   | { startWith: string }
   | { endWith: string }
 
-export interface InvalidString extends ErrorBase {
+export interface StringError extends ValidationErrorBase {
   code: typeof ErrorCode.invalid_string;
   validation: StringValidation;
 }
 
-export interface InvalidTooSmall extends ErrorBase {
+export interface TooSmallError extends ValidationErrorBase {
   code: typeof ErrorCode.too_small;
   minimum: number;
   inclusive: boolean;
   type: "array" | "string"
 }
 
-export interface InvalidTooBig extends ErrorBase {
+export interface TooBigError extends ValidationErrorBase {
   code: typeof ErrorCode.too_big
   maximum: number
   inclusive: boolean
   type: "array" | "string"
 }
 
-export interface CustomError extends ErrorBase {
+export interface RequiredError extends ValidationErrorBase {
+  code: typeof ErrorCode.required
+  params?: { [k: string]: any }
+}
+
+export interface CustomError extends ValidationErrorBase {
   code: typeof ErrorCode.custom;
   params?: { [k: string]: any }
 }
 
 export type InvalidOptionalMessage =
-  | InvalidType
-  | InvalidString
-  | InvalidTooSmall
-  | InvalidTooBig
-  | CustomError;
+  | InvalidTypeError
+  | StringError
+  | TooSmallError
+  | TooBigError
+  | CustomError
+  | RequiredError
 
 export type Issue = InvalidOptionalMessage & { message: string }
-export class ValidateError<T = any> extends Error {
-  issues: Issue[] = []
+// export class ValidateError<T = any>  {
+//   issues: Issue[] = []
 
-  constructor(issues: Issue[]) {
-    super()
+//   constructor(issues: Issue[]) {
 
-    const actualProto = new.target.prototype
-    if (Object.setPrototypeOf) {
-      Object.setPrototypeOf(this, actualProto)
-    } else {
-      (this as any).__proto__ = actualProto
-    }
-    this.issues = issues
-  }  
+//     const actualProto = new.target.prototype
+//     if (Object.setPrototypeOf) {
+//       Object.setPrototypeOf(this, actualProto)
+//     } else {
+//       (this as any).__proto__ = actualProto
+//     }
+//     this.issues = issues
+//   }  
 
-  static create = (issues: Issue[]) => {
-    const error = new ValidateError(issues)
-    return error
-  }
-
-  get message() {
-    return JSON.stringify(this.issues, null, 2)
-  }   
-}
+//   static create = (issues: Issue[]) => {
+//     const error = new ValidateError(issues)
+//     return error
+//   }     
+// }
 
 type StripPath<T extends object> = T extends any
   ? util.OmitKeys<T, "path">

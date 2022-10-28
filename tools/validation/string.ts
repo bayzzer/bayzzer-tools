@@ -1,10 +1,11 @@
 import { errorUtil } from "./utils/errorUtil";
-import { addIssueToContext, INVALID, ValidationContext, ValidationInput, ValidateReturnType, ValidateStatus } from "./utils/validationUtil";
-import { util, ValidationEnum } from "./utils/util";
-import { processCreateParams, RawCreateParams, SchemaOf, ValidationKind, ValidationTypeDef } from "./schema";
+import { addIssueToContext, ValidationContext, ValidationInput, ValidateReturn, ValidateStatus } from "./utils/validationUtil";
+import { util } from "./utils/util";
+import { SchemaOf, ValidationKind, ValidationTypeDef } from "./schema"
 import { ErrorCode } from "./error"
 
 type StringCheck =
+  | { kind: "required"; message?: string }
   | { kind: "min"; value: number; message?: string }
   | { kind: "max"; value: number; message?: string }
   | { kind: "email"; message?: string }
@@ -21,119 +22,133 @@ export interface StringDef extends ValidationTypeDef {
 const emailRegex = /^(([^<>()[\]\.,;:\s@\"]+(\.[^<>()[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
 
 export class ValidationString extends SchemaOf<string, StringDef> {
-  _validation(input: ValidationInput): ValidateReturnType<string> {
-    const parsedType = this._getType(input);
+  _validation(input: ValidationInput): ValidateReturn<string> {
 
-    if (parsedType !== ValidationEnum.string) {
-      const ctx = this._getOrReturnCtx(input);
-      addIssueToContext(
-        ctx,
-        {
-          code: ErrorCode.invalid_type,
-          expected: ValidationEnum.string,
-          received: ctx.parsedType,
-        }
-      );
-      return INVALID
-    }
+    if (input.data === undefined || input.data == null) {
+      input.data = ''
+    }   
 
     const status = new ValidateStatus();
     let ctx: undefined | ValidationContext = undefined
 
     for (const check of this._def.checks) {
-      if (check.kind === "min") {
-        if (input.data.length < check.value) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            code: ErrorCode.too_small,
-            minimum: check.value,
-            type: "string",
-            inclusive: true,
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else if (check.kind === "max") {
-        if (input.data.length > check.value) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            code: ErrorCode.too_big,
-            maximum: check.value,
-            type: "string",
-            inclusive: true,
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else if (check.kind === "email") {
-        if (!emailRegex.test(input.data)) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            validation: "email",
-            code: ErrorCode.invalid_string,
-            message: check.message,
-          });
-          status.dirty();
-        }
-      }else if (check.kind === "url") {
-        try {
-          new URL(input.data);
-        } catch {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            validation: "url",
-            code: ErrorCode.invalid_string,
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else if (check.kind === "regex") {
-        check.regex.lastIndex = 0;
-        const testResult = check.regex.test(input.data);
-        if (!testResult) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            validation: "regex",
-            code: ErrorCode.invalid_string,
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else if (check.kind === "trim") {
-        input.data = input.data.trim();
-      } else if (check.kind === "startWith") {
-        if (!(input.data as string).startsWith(check.value)) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            code: ErrorCode.invalid_string,
-            validation: { startWith: check.value },
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else if (check.kind === "endWith") {
-        if (!(input.data as string).endsWith(check.value)) {
-          ctx = this._getOrReturnCtx(input, ctx);
-          addIssueToContext(ctx, {
-            code: ErrorCode.invalid_string,
-            validation: { endWith: check.value },
-            message: check.message,
-          });
-          status.dirty();
-        }
-      } else {
-        util.assertNever(check);
+      switch (check.kind) {
+        case 'min':
+          if (input.data.length < check.value) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              code: ErrorCode.too_small,
+              minimum: check.value,
+              type: "string",
+              inclusive: true,
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'max':
+          if (input.data.length > check.value) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              code: ErrorCode.too_big,
+              maximum: check.value,
+              type: "string",
+              inclusive: true,
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'required':
+          if (input.data.length == 0) {
+            ctx = this._getOrReturnCtx(input, ctx)
+            addIssueToContext(ctx, {
+              code: ErrorCode.required,
+              message: check.message,
+            })
+            status.dirty()
+          }
+          break
+        case 'email':
+          if (!emailRegex.test(input.data)) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              validation: "email",
+              code: ErrorCode.invalid_string,
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'url':
+          try {
+            new URL(input.data);
+          } catch {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              validation: "url",
+              code: ErrorCode.invalid_string,
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'regex':
+          check.regex.lastIndex = 0;
+          const testResult = check.regex.test(input.data);
+          if (!testResult) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              validation: "regex",
+              code: ErrorCode.invalid_string,
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'trim':
+          input.data = input.data.trim();
+          break
+        case 'startWith':
+          if (!(input.data as string).startsWith(check.value)) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              code: ErrorCode.invalid_string,
+              validation: { startWith: check.value },
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        case 'endWith':
+          if (!(input.data as string).endsWith(check.value)) {
+            ctx = this._getOrReturnCtx(input, ctx);
+            addIssueToContext(ctx, {
+              code: ErrorCode.invalid_string,
+              validation: { endWith: check.value },
+              message: check.message,
+            });
+            status.dirty();
+          }
+          break
+        default:
+          util.assertNever(check)
+          break
       }
     }
 
-    return { status: status.value, value: input.data };
-  }  
+    return { status: status.value, value: input.data }
+  }
 
   _addCheck(check: StringCheck) {
     return new ValidationString({
       ...this._def,
       checks: [...this._def.checks, check],
     });
+  }
+
+  required(message?: errorUtil.ErrMessage) {
+    return this._addCheck({ kind: "required", ...errorUtil.errToObj(message) });
   }
 
   email(message?: errorUtil.ErrMessage) {
@@ -191,11 +206,10 @@ export class ValidationString extends SchemaOf<string, StringDef> {
     checks: [...this._def.checks, { kind: "trim" }],
   })
 
-  static create = (params?: RawCreateParams): ValidationString => {
+  static create = (): ValidationString => {
     return new ValidationString({
       checks: [],
-      name: ValidationKind.String,
-      ...processCreateParams(params),
+      name: ValidationKind.String
     })
   }
 }

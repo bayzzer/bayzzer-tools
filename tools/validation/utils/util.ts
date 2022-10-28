@@ -51,8 +51,7 @@ export const getValidationType = (data: any): ValidationType => {
       if (Array.isArray(data)) {
         return ValidationEnum.array
       }
-      return ValidationEnum.object
-
+      return ValidationEnum.object      
     default:
       return ValidationEnum.unknown
   }
