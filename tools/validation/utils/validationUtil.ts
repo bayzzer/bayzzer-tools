@@ -40,14 +40,12 @@ export type ValidationParams = {
 
 export type ValidationPathComponent = string | number;
 export type ValidationPath = ValidationPathComponent[];
-export const EMPTY_PATH: ValidationPath = [];
+//export const EMPTY_PATH: ValidationPath = [];
 
 export interface ValidationContext {
-  readonly common: {
-    readonly issues: Issue[];
-    readonly contextualErrorMap?: ErrorMap;
-    readonly async: boolean;
-  };
+  readonly issues: Issue[];
+  readonly contextualErrorMap?: ErrorMap;
+  readonly async: boolean;
   readonly path: ValidationPath;
   readonly schemaErrorMap?: ErrorMap;
   readonly parent: ValidationContext | null;
@@ -70,12 +68,12 @@ export function addIssueToContext(
     data: ctx.data,
     path: ctx.path,
     errorMaps: [
-      ctx.common.contextualErrorMap, // contextual error map is first priority
+      ctx.contextualErrorMap, // contextual error map is first priority
       ctx.schemaErrorMap, // then schema-bound map if available
       defaultErrorMap, // then global default map
     ].filter((x) => !!x) as ErrorMap[],
   });
-  ctx.common.issues.push(issue);
+  ctx.issues.push(issue);
 }
 export class ValidateStatus {
   value: "aborted" | "dirty" | "valid" = "valid";

@@ -100,7 +100,7 @@ export class ValidationObject<
       })
     }
 
-    if (ctx.common.async) {
+    if (ctx.async) {
       return Promise.resolve()
         .then(async () => {
           const syncPairs: any[] = [];

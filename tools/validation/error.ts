@@ -23,9 +23,7 @@ export interface InvalidTypeError extends ValidationErrorBase {
 export type StringValidation =
   | "email"
   | "url"
-  | "uuid"
   | "regex"
-  | "cuid"
   | { startWith: string }
   | { endWith: string }
 
@@ -67,25 +65,6 @@ export type InvalidOptionalMessage =
   | RequiredError
 
 export type Issue = InvalidOptionalMessage & { message: string }
-// export class ValidateError<T = any>  {
-//   issues: Issue[] = []
-
-//   constructor(issues: Issue[]) {
-
-//     const actualProto = new.target.prototype
-//     if (Object.setPrototypeOf) {
-//       Object.setPrototypeOf(this, actualProto)
-//     } else {
-//       (this as any).__proto__ = actualProto
-//     }
-//     this.issues = issues
-//   }  
-
-//   static create = (issues: Issue[]) => {
-//     const error = new ValidateError(issues)
-//     return error
-//   }     
-// }
 
 type StripPath<T extends object> = T extends any
   ? util.OmitKeys<T, "path">

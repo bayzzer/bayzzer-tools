@@ -102,7 +102,7 @@ export const Immutable = () => {
             password: '',
             other: '´p',
             //obj: {},
-            //arr: [],
+            arr: ['ñ'],
             key: {
                 values: ['rtr', 'trt', 'trt']
             }

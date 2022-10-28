@@ -70,7 +70,7 @@ export class ValidationArray<
       }
     }
 
-    if (ctx.common.async) {
+    if (ctx.async) {
       return Promise.all(
         (ctx.data as any[]).map((item, i) => {
           return def.type._validateAsync(

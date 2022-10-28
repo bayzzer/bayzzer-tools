@@ -17,7 +17,6 @@ import { getValidationType, util } from "./utils/util"
 import {
   ErrorData,
   CustomError,
-  //ValidateError,
   ErrorMap,
   ErrorCode,
   Issue,
@@ -64,48 +63,12 @@ const handleResult = <Input, Output>(
   if (isValid(result)) {
     return { ok: true, data: result.value };
   } else {
-    var issuesCount = ctx.common.issues.length
+    var issuesCount = ctx.issues.length
     if (!issuesCount) {
       throw new Error(`Validation failed, without errors`)
     }
-    return { ok: false, errors: ctx.common.issues }
+    return { ok: false, errors: ctx.issues }
   }
-}
-
-export type RawCreateParams =
-  | {
-    errorMap?: ErrorMap
-    invalid_type_error?: string
-    required_error?: string
-    description?: string
-  }
-  | undefined
-
-type ProcessedCreateParams = {
-  errorMap?: ErrorMap,
-  description?: string
-}
-
-export function processCreateParams(params: RawCreateParams): ProcessedCreateParams {
-  if (!params) return {}
-
-  const { errorMap, invalid_type_error, required_error, description } = params
-  if (errorMap && (invalid_type_error || required_error)) {
-    throw new Error(
-      `Invalid conjunction with custom error map.`
-    )
-  }
-
-  if (errorMap) return { errorMap: errorMap, description }
-
-  const customMap: ErrorMap = (iss, ctx) => {
-    if (iss.code !== "invalid_type") return { message: ctx.defaultError };
-    if (typeof ctx.data === "undefined") {
-      return { message: required_error ?? ctx.defaultError }
-    }
-    return { message: invalid_type_error ?? ctx.defaultError }
-  };
-  return { errorMap: customMap, description }
 }
 
 export type ValidationSuccess<Output> = { ok: true; data: Output }
@@ -120,16 +83,16 @@ export abstract class SchemaOf<
   Def extends ValidationTypeDef = ValidationTypeDef,
   Input = Output
 > {
-  readonly _type!: Output
   readonly _output!: Output
   readonly _input!: Input
   readonly _def!: Def
 
   abstract _validation(input: ValidationInput): ValidateReturn<Output>
 
-  _getType(input: ValidationInput): string {
-    return getValidationType(input.data)
-  }
+  // _getType(input: ValidationInput): string {
+  //   return getValidationType(input.data)
+  // }
+  
 
   _getOrReturnCtx(
     input: ValidationInput,
@@ -137,7 +100,9 @@ export abstract class SchemaOf<
   ): ValidationContext {
     return (
       ctx || {
-        common: input.parent.common,
+        issues: input.parent.issues,
+        contextualErrorMap: input.parent.contextualErrorMap,
+        async: input.parent.async,
         data: input.data,
 
         parsedType: getValidationType(input.data),
@@ -156,7 +121,9 @@ export abstract class SchemaOf<
     return {
       status: new ValidateStatus(),
       ctx: {
-        common: input.parent.common,
+        issues: input.parent.issues,
+        contextualErrorMap: input.parent.contextualErrorMap,
+        async: input.parent.async,
         data: input.data,
 
         parsedType: getValidationType(input.data),
@@ -187,11 +154,9 @@ export abstract class SchemaOf<
     params?: Partial<ValidationParams>
   ): Promise<ValidationReturn<Input, Output>> {
     const ctx: ValidationContext = {
-      common: {
-        issues: [],
-        contextualErrorMap: params?.errorMap,
-        async: true,
-      },
+      issues: [],
+      contextualErrorMap: params?.errorMap,
+      async: true,
       path: params?.path || [],
       schemaErrorMap: this._def.errorMap,
       parent: null,
@@ -337,7 +302,7 @@ export class ValidationEffects<
         acc: unknown
       ): any => {
         const result = effect.refinement(acc, checkCtx);
-        if (ctx.common.async) {
+        if (ctx.async) {
           return Promise.resolve(result);
         }
         if (result instanceof Promise) {
@@ -348,7 +313,7 @@ export class ValidationEffects<
         return acc
       };
 
-      if (ctx.common.async === false) {
+      if (ctx.async === false) {
         const inner = this._def.schema._validateSync({
           data: ctx.data,
           path: ctx.path,
@@ -375,7 +340,7 @@ export class ValidationEffects<
     }
 
     if (effect.type === "convert") {
-      if (ctx.common.async === false) {
+      if (ctx.async === false) {
         const base = this._def.schema._validateSync({
           data: ctx.data,
           path: ctx.path,
@@ -409,14 +374,12 @@ export class ValidationEffects<
 
   static create = <I extends ValidateAnyType>(
     schema: I,
-    effect: Effect<I["_output"]>,
-    params?: RawCreateParams
+    effect: Effect<I["_output"]>
   ): ValidationEffects<I, I["_output"]> => {
     return new ValidationEffects({
       schema,
       name: ValidationKind.Effects,
-      effect,
-      ...processCreateParams(params),
+      effect
     });
   }
 }
