@@ -3,8 +3,7 @@ import { ValidatedType } from "./utils/util";
 import { ValidateInputPath, SchemaKind, SchemaOf, SchemaTypeAny, SchemaTypeDef } from "./schema";
 import { ErrorCode } from "./validation_error";
 import { errorUtil } from "./utils/error_util";
-
-export interface ArrayDef<T extends SchemaTypeAny = SchemaTypeAny>
+interface ArrayDef<T extends SchemaTypeAny = SchemaTypeAny>
   extends SchemaTypeDef {
   type: T;
   typeName: SchemaKind.Array;
@@ -12,7 +11,7 @@ export interface ArrayDef<T extends SchemaTypeAny = SchemaTypeAny>
   maxLength: { value: number; message?: string } | null;
 }
 
-export type ArrayCardinality = "many" | "atleastone";
+type ArrayCardinality = "many" | "atleastone";
 type arrayOutputType<
   T extends SchemaTypeAny,
   Cardinality extends ArrayCardinality = "many"
@@ -27,19 +26,19 @@ export class Array<
   arrayOutputType<T, Cardinality>,
   ArrayDef<T>,
   Cardinality extends "atleastone"
-    ? [T["_input"], ...T["_input"][]]
-    : T["_input"][]
+  ? [T["_input"], ...T["_input"][]]
+  : T["_input"][]
 > {
   _validation(input: ValidateInput): ValidationResult<this["_output"]> {
     const { ctx, status } = this._processInputParams(input);
 
     const def = this._def;
 
-    if (ctx.parsedType !== ValidatedType.array) {
+    if (ctx.type !== ValidatedType.array) {
       addError(ctx, {
         code: ErrorCode.invalid_type,
         expected: ValidatedType.array,
-        received: ctx.parsedType,
+        received: ctx.type,
       });
       return INVALID;
     }
@@ -89,7 +88,7 @@ export class Array<
     });
 
     return ValidationStatus.mergeArray(status, result);
-  }  
+  }
 
   min(minLength: number, message?: errorUtil.ErrorMessage): this {
     return new Array({

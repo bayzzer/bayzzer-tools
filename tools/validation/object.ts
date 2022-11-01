@@ -3,9 +3,6 @@ import { util } from "./utils/util";
 import { ValidateInputPath, SchemaKind, SchemaRawShape, SchemaOf, SchemaTypeAny, SchemaTypeDef } from "./schema";
 
 export namespace objectUtil {
-    export type MergeShapes<U extends SchemaRawShape, V extends SchemaRawShape> = {
-        [k in Exclude<keyof U, keyof V>]: U[k];
-    } & V;
 
     type OptionalKeys<T extends object> = {
         [k in keyof T]: undefined extends T[k] ? k : never;
@@ -23,13 +20,9 @@ export namespace objectUtil {
     export type Identity<T> = T;
     export type Flatten<T extends object> = Identity<{ [k in keyof T]: T[k] }>;
 
-    export type NoNeverKeys<T extends SchemaRawShape> = {
-        [k in keyof T]: [T[k]] extends [never] ? never : k;
-    }[keyof T];
 
-    export type NoNever<T extends SchemaRawShape> = Identity<{
-        [k in NoNeverKeys<T>]: k extends keyof T ? T[k] : never;
-    }>;
+
+
 
     export const mergeShapes = <U extends SchemaRawShape, T extends SchemaRawShape>(
         first: U,
@@ -41,21 +34,21 @@ export namespace objectUtil {
         };
     };
 }
-export interface ObjectDef<
+interface ObjectDef<
     T extends SchemaRawShape = SchemaRawShape
 > extends SchemaTypeDef {
     typeName: SchemaKind.Object;
     shape: () => T
 }
 
-export type BaseObjectOutputType<Shape extends SchemaRawShape> =
+type BaseObjectOutputType<Shape extends SchemaRawShape> =
     objectUtil.Flatten<
         objectUtil.AddQuestionMarks<{
             [k in keyof Shape]: Shape[k]["_output"];
         }>
     >;
 
-export type ObjectOutputType<
+type ObjectOutputType<
     Shape extends SchemaRawShape,
     Catchall extends SchemaTypeAny
 > = SchemaTypeAny extends Catchall
@@ -64,13 +57,13 @@ export type ObjectOutputType<
         BaseObjectOutputType<Shape> & { [k: string]: Catchall["_output"] }
     >;
 
-export type BaseObjectInputType<Shape extends SchemaRawShape> = objectUtil.Flatten<
+type BaseObjectInputType<Shape extends SchemaRawShape> = objectUtil.Flatten<
     objectUtil.AddQuestionMarks<{
         [k in keyof Shape]: Shape[k]["_input"];
     }>
 >;
 
-export type ObjectInputType<
+type ObjectInputType<
     Shape extends SchemaRawShape,
     Catchall extends SchemaTypeAny
 > = SchemaTypeAny extends Catchall

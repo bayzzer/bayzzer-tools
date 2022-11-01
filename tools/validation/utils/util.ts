@@ -1,11 +1,11 @@
 export namespace util {
- 
+
   export function assertNever(_x: never): never {
     throw new Error();
   }
 
   export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-  export type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>;  
+  export type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>;
 
   export const arrayToEnum = <T extends string, U extends [T, ...T[]]>(
     items: U
@@ -35,13 +35,6 @@ export namespace util {
         }
         return keys;
       };
-
-  export const jsonStringifyReplacer = (_: string, value: any): any => {
-    if (typeof value === "bigint") {
-      return value.toString();
-    }
-    return value;
-  };
 }
 
 export const ValidatedType = util.arrayToEnum([

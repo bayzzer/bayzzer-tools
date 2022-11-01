@@ -19,14 +19,12 @@ export const ErrorCode = util.arrayToEnum([
   "required"
 ]);
 
-export type ValidationCode = keyof typeof ErrorCode;
-
-export type ValidationBase = {
+type ValidationBase = {
   path: (string | number)[];
   message?: string;
 };
 
-export interface InvalidTypeError extends ValidationBase {
+interface InvalidTypeError extends ValidationBase {
   code: typeof ErrorCode.invalid_type;
   expected: ValidatedType;
   received: ValidatedType;
@@ -39,24 +37,24 @@ export type StringValidation =
   | { startWith: string }
   | { endWith: string };
 
-  export interface RequiredError extends ValidationBase {
-    code: typeof ErrorCode.required
-    params?: { [k: string]: any }
-  }
+interface RequiredError extends ValidationBase {
+  code: typeof ErrorCode.required
+  params?: { [k: string]: any }
+}
 
-export interface InvalidString extends ValidationBase {
+interface InvalidString extends ValidationBase {
   code: typeof ErrorCode.invalid_string;
   validation: StringValidation;
 }
 
-export interface TooSmall extends ValidationBase {
+interface TooSmall extends ValidationBase {
   code: typeof ErrorCode.too_small;
   minimum: number;
   inclusive: boolean;
-  type: "array" | "string" 
+  type: "array" | "string"
 }
 
-export interface TooBig extends ValidationBase {
+interface TooBig extends ValidationBase {
   code: typeof ErrorCode.too_big;
   maximum: number;
   inclusive: boolean;
@@ -68,11 +66,11 @@ export interface CustomValidation extends ValidationBase {
   params?: { [k: string]: any };
 }
 
-export type ErrorType =
-  | InvalidTypeError  
+type ErrorType =
+  | InvalidTypeError
   | InvalidString
   | TooSmall
-  | TooBig  
+  | TooBig
   | RequiredError
   | CustomValidation;
 
@@ -99,7 +97,7 @@ export class Validation<T = any> extends Error {
   static create = (errors: ValidationError[]) => {
     const error = new Validation(errors);
     return error;
-  }; 
+  };
 
   addError = (sub: ValidationError) => {
     this.errors = [...this.errors, sub];
@@ -122,19 +120,19 @@ export class Validation<T = any> extends Error {
       }
     }
     return fieldErrors
-  }  
+  }
 
   getFieldError(): FieldError<T> {
     let fieldErrors: any = {}
     for (const sub of this.errors) {
-      if (sub.path.length > 0) {        
-        if(!fieldErrors[sub.path[0]]){
+      if (sub.path.length > 0) {
+        if (!fieldErrors[sub.path[0]]) {
           fieldErrors[sub.path[0]] = sub.message
         }
       }
     }
     return fieldErrors
-  } 
+  }
 }
 
 type StripPath<T extends object> = T extends any
@@ -146,7 +144,7 @@ export type ErrorData = StripPath<ErrorType> & {
   fatal?: boolean;
 };
 
-export type ErrorMapCtx = {
+type ErrorMapCtx = {
   defaultError: string;
   data: any;
 };

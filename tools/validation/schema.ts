@@ -7,7 +7,7 @@ import {
   isValid,
   ValidationContext,
   ValidateInput,
-  ParseParams,
+  ValidationParams,
   ValidationPath,
   ValidationResult,
   ValidationStatus,
@@ -28,12 +28,8 @@ export type RefinementCtx = {
 };
 export type SchemaRawShape = { [k: string]: SchemaTypeAny }
 export type SchemaTypeAny = SchemaOf<any, any, any>
-export type SchemaTypeOf<T extends SchemaOf<any, any, any>> = T["_output"]
-export type SchemaInput<T extends SchemaOf<any, any, any>> = T["_input"]
-export type SchemaOutput<T extends SchemaOf<any, any, any>> = T["_output"]
 
-
-export type CustomErrorParams = Partial<util.Omit<CustomValidation, "code">>;
+type CustomErrorParams = Partial<util.Omit<CustomValidation, "code">>;
 export interface SchemaTypeDef {
   errorMap?: ErrorMap
 }
@@ -90,10 +86,10 @@ export abstract class SchemaOf<
 > {
   readonly _output!: Output;
   readonly _input!: Input;
-  readonly _def!: Def; 
+  readonly _def!: Def;
 
   abstract _validation(input: ValidateInput): ValidationResult<Output>
- 
+
 
   _getOrReturnCtx(
     input: ValidateInput,
@@ -104,7 +100,7 @@ export abstract class SchemaOf<
         common: input.parent.common,
         data: input.data,
 
-        parsedType: getValidatedType(input.data),
+        type: getValidatedType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
@@ -123,7 +119,7 @@ export abstract class SchemaOf<
         common: input.parent.common,
         data: input.data,
 
-        parsedType: getValidatedType(input.data),
+        type: getValidatedType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
@@ -147,7 +143,7 @@ export abstract class SchemaOf<
 
   async validate(
     data: unknown,
-    params?: Partial<ParseParams>
+    params?: Partial<ValidationParams>
   ): Promise<SchemaValidation<Input, Output>> {
     const ctx: ValidationContext = {
       common: {
@@ -159,7 +155,7 @@ export abstract class SchemaOf<
       schemaErrorMap: this._def.errorMap,
       parent: null,
       data,
-      parsedType: getValidatedType(data),
+      type: getValidatedType(data),
     };
 
     const maybeAsyncResult = this._validation({ data, path: [], parent: ctx });
@@ -273,31 +269,28 @@ export abstract class SchemaOf<
       type: SchemaKind.Effect,
       effect: { type: "convert", convert },
     }) as any;
-  } 
+  }
 }
 
-export type Refinement<T> = (arg: T, ctx: RefinementCtx) => any
-
-export type RefinementEffect<T> = {
+type RefinementEffect<T> = {
   type: "refinement";
   refinement: (arg: T, ctx: RefinementCtx) => any;
 };
-export type ConvertEffect<T> = {
+type ConvertEffect<T> = {
   type: "convert";
   convert: (arg: T, ctx: RefinementCtx) => any;
 };
 
-export type EffectType<T> =
+type EffectType<T> =
   | RefinementEffect<T>
   | ConvertEffect<T>
 
-export interface EffectDef<T extends SchemaTypeAny = SchemaTypeAny>
+interface EffectDef<T extends SchemaTypeAny = SchemaTypeAny>
   extends SchemaTypeDef {
   schema: T;
   type: SchemaKind.Effect;
   effect: EffectType<any>;
 }
-
 export class Effect<
   T extends SchemaTypeAny,
   Output = T["_output"],
@@ -310,7 +303,7 @@ export class Effect<
   _validation(input: ValidateInput): ValidationResult<this["_output"]> {
     const { status, ctx } = this._processInputParams(input);
 
-    const effect = this._def.effect || null    
+    const effect = this._def.effect || null
 
     const checkCtx: RefinementCtx = {
       addIssue: (arg: ErrorData) => {
@@ -411,7 +404,7 @@ export class Effect<
       type: SchemaKind.Effect,
       effect
     });
-  };  
+  };
 }
 
 export enum SchemaKind {

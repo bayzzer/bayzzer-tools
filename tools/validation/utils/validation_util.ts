@@ -31,14 +31,14 @@ export const makeIssue = (params: {
   };
 };
 
-export type ParseParams = {
+export type ValidationParams = {
   path: (string | number)[];
   errorMap: ErrorMap;
   async: boolean;
 };
 
-export type ParsePathComponent = string | number;
-export type ValidationPath = ParsePathComponent[];
+export type ValidationPathComponent = string | number;
+export type ValidationPath = ValidationPathComponent[];
 export const EMPTY_PATH: ValidationPath = [];
 
 export interface ValidationContext {
@@ -51,7 +51,7 @@ export interface ValidationContext {
   readonly schemaErrorMap?: ErrorMap;
   readonly parent: ValidationContext | null;
   readonly data: any;
-  readonly parsedType: ValidatedType;
+  readonly type: ValidatedType;
 }
 
 export type ValidateInput = {
@@ -77,7 +77,7 @@ export function addError(
   ctx.common.issues.push(issue);
 }
 
-export type ObjectPair = {
+type ObjectPair = {
   key: ValidationSync<any>;
   value: ValidationSync<any>;
 };
@@ -141,10 +141,6 @@ export class ValidationStatus {
 
     return { status: status.value, value: finalObject };
   }
-}
-export interface ValidateResult {
-  status: "aborted" | "dirty" | "valid";
-  data: any;
 }
 
 export type INVALID = { status: "aborted" };
