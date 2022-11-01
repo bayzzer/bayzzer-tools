@@ -1,15 +1,14 @@
-
 import defaultErrorMap from "../message";
-import type { ErrorData, ErrorMap, Issue } from "../error";
-import type { ValidationType } from "./util";
+import type { ErrorData, ErrorMap, ValidationError } from "../validation_error";
+import type { ValidatedType } from "./util";
 
 export const makeIssue = (params: {
   data: any;
   path: (string | number)[];
   errorMaps: ErrorMap[];
-  issueData: ErrorData;
-}): Issue => {
-  const { data, path, errorMaps, issueData } = params;
+  errorData: ErrorData;
+}): ValidationError => {
+  const { data, path, errorMaps, errorData: issueData } = params;
   const fullPath = [...path, ...(issueData.path || [])];
   const fullIssue = {
     ...issueData,
@@ -32,50 +31,57 @@ export const makeIssue = (params: {
   };
 };
 
-export type ValidationParams = {
+export type ParseParams = {
   path: (string | number)[];
   errorMap: ErrorMap;
   async: boolean;
 };
 
-export type ValidationPathComponent = string | number;
-export type ValidationPath = ValidationPathComponent[];
-//export const EMPTY_PATH: ValidationPath = [];
+export type ParsePathComponent = string | number;
+export type ValidationPath = ParsePathComponent[];
+export const EMPTY_PATH: ValidationPath = [];
 
 export interface ValidationContext {
-  readonly issues: Issue[];
-  readonly contextualErrorMap?: ErrorMap;
-  readonly async: boolean;
+  readonly common: {
+    readonly issues: ValidationError[];
+    readonly errorMap?: ErrorMap;
+    readonly async: boolean;
+  };
   readonly path: ValidationPath;
   readonly schemaErrorMap?: ErrorMap;
   readonly parent: ValidationContext | null;
   readonly data: any;
-  readonly parsedType: ValidationType;
+  readonly parsedType: ValidatedType;
 }
 
-export type ValidationInput = {
-  data: any
-  path: (string | number)[]
-  parent: ValidationContext
+export type ValidateInput = {
+  data: any;
+  path: (string | number)[];
+  parent: ValidationContext;
 };
 
-export function addIssueToContext(
+export function addError(
   ctx: ValidationContext,
-  issueData: ErrorData
+  errData: ErrorData
 ): void {
   const issue = makeIssue({
-    issueData: issueData,
+    errorData: errData,
     data: ctx.data,
     path: ctx.path,
     errorMaps: [
-      ctx.contextualErrorMap, // contextual error map is first priority
+      ctx.common.errorMap, // contextual error map is first priority
       ctx.schemaErrorMap, // then schema-bound map if available
       defaultErrorMap, // then global default map
     ].filter((x) => !!x) as ErrorMap[],
   });
-  ctx.issues.push(issue);
+  ctx.common.issues.push(issue);
 }
-export class ValidateStatus {
+
+export type ObjectPair = {
+  key: ValidationSync<any>;
+  value: ValidationSync<any>;
+};
+export class ValidationStatus {
   value: "aborted" | "dirty" | "valid" = "valid";
   dirty() {
     if (this.value === "valid") this.value = "dirty";
@@ -85,9 +91,9 @@ export class ValidateStatus {
   }
 
   static mergeArray(
-    status: ValidateStatus,
-    results: ValidateSync<any>[]
-  ): ValidateSync {
+    status: ValidationStatus,
+    results: ValidationSync<any>[]
+  ): ValidationSync {
     const arrayValue: any[] = [];
     for (const s of results) {
       if (s.status === "aborted") return INVALID;
@@ -96,16 +102,30 @@ export class ValidateStatus {
     }
 
     return { status: status.value, value: arrayValue };
-  } 
+  }
+
+  static async mergeObjectAsync(
+    status: ValidationStatus,
+    pairs: { key: ValidationResult<any>; value: ValidationResult<any> }[]
+  ): Promise<ValidationSync<any>> {
+    const syncPairs: ObjectPair[] = [];
+    for (const pair of pairs) {
+      syncPairs.push({
+        key: await pair.key,
+        value: await pair.value,
+      });
+    }
+    return ValidationStatus.mergeObjectSync(status, syncPairs);
+  }
 
   static mergeObjectSync(
-    status: ValidateStatus,
+    status: ValidationStatus,
     pairs: {
-      key: ValidateSync<any>;
-      value: ValidateSync<any>;
+      key: ValidationSync<any>;
+      value: ValidationSync<any>;
       alwaysSet?: boolean;
     }[]
-  ): ValidateSync {
+  ): ValidationSync {
     const finalObject: any = {};
     for (const pair of pairs) {
       const { key, value } = pair;
@@ -122,6 +142,10 @@ export class ValidateStatus {
     return { status: status.value, value: finalObject };
   }
 }
+export interface ValidateResult {
+  status: "aborted" | "dirty" | "valid";
+  data: any;
+}
 
 export type INVALID = { status: "aborted" };
 export const INVALID: INVALID = Object.freeze({
@@ -134,19 +158,19 @@ export const DIRTY = <T>(value: T): DIRTY<T> => ({ status: "dirty", value });
 export type OK<T> = { status: "valid"; value: T };
 export const OK = <T>(value: T): OK<T> => ({ status: "valid", value });
 
-export type ValidateSync<T = any> = OK<T> | DIRTY<T> | INVALID;
-export type ValidateAsync<T> = Promise<ValidateSync<T>>
-export type ValidateReturn<T> =
-  | ValidateSync<T>
-  | ValidateAsync<T>
+export type ValidationSync<T = any> = OK<T> | DIRTY<T> | INVALID;
+export type ValidationAsync<T> = Promise<ValidationSync<T>>;
+export type ValidationResult<T> =
+  | ValidationSync<T>
+  | ValidationAsync<T>
 
-export const isAborted = (x: ValidateReturn<any>): x is INVALID =>
+export const isAborted = (x: ValidationResult<any>): x is INVALID =>
   (x as any).status === "aborted";
-export const isDirty = <T>(x: ValidateReturn<T>): x is OK<T> | DIRTY<T> =>
+export const isDirty = <T>(x: ValidationResult<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "dirty";
-export const isValid = <T>(x: ValidateReturn<T>): x is OK<T> | DIRTY<T> =>
+export const isValid = <T>(x: ValidationResult<T>): x is OK<T> | DIRTY<T> =>
   (x as any).status === "valid";
 export const isAsync = <T>(
-  x: ValidateReturn<T>
-): x is ValidateAsync<T> =>
-  typeof Promise !== undefined && x instanceof Promise
+  x: ValidationResult<T>
+): x is ValidationAsync<T> =>
+  typeof Promise !== undefined && x instanceof Promise;

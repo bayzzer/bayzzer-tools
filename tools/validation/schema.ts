@@ -1,53 +1,58 @@
-import { ValidationArray } from "./array"
+import { Array } from "./array";
 import {
-  addIssueToContext,
-  ValidateAsync,
+  addError,
+  ValidationAsync,
   INVALID,
   isAsync,
   isValid,
   ValidationContext,
-  ValidationInput,
-  ValidationParams,
+  ValidateInput,
+  ParseParams,
   ValidationPath,
-  ValidateReturn,
-  ValidateStatus,
-  ValidateSync,
-} from "./utils/validationUtil";
-import { getValidationType, util } from "./utils/util"
+  ValidationResult,
+  ValidationStatus,
+  ValidationSync,
+} from "./utils/validation_util";
+import { getValidatedType, util } from "./utils/util"
 import {
   ErrorData,
-  CustomError,
+  CustomValidation,
+  Validation,
   ErrorMap,
   ErrorCode,
-  Issue,
-} from "./error";
+} from "./validation_error";
 
 export type RefinementCtx = {
   addIssue: (arg: ErrorData) => void
   path: (string | number)[]
-}
-export type RawShape = { [k: string]: ValidateAnyType }
-export type ValidateAnyType = SchemaOf<any, any, any>
-export type CustomErrorParams = Partial<util.Omit<CustomError, "code">>
-export interface ValidationTypeDef {
+};
+export type SchemaRawShape = { [k: string]: SchemaTypeAny }
+export type SchemaTypeAny = SchemaOf<any, any, any>
+export type SchemaTypeOf<T extends SchemaOf<any, any, any>> = T["_output"]
+export type SchemaInput<T extends SchemaOf<any, any, any>> = T["_input"]
+export type SchemaOutput<T extends SchemaOf<any, any, any>> = T["_output"]
+
+
+export type CustomErrorParams = Partial<util.Omit<CustomValidation, "code">>;
+export interface SchemaTypeDef {
   errorMap?: ErrorMap
-  description?: string
 }
-export class ValidateInputLazyPath implements ValidationInput {
+
+export class ValidateInputPath implements ValidateInput {
   parent: ValidationContext;
   data: any;
   _path: ValidationPath;
-  _key: string | number | (string | number)[]
+  _key: string | number | (string | number)[];
   constructor(
     parent: ValidationContext,
     value: any,
     path: ValidationPath,
     key: string | number | (string | number)[]
   ) {
-    this.parent = parent
-    this.data = value
-    this._path = path
-    this._key = key
+    this.parent = parent;
+    this.data = value;
+    this._path = path;
+    this._key = key;
   }
   get path() {
     return this._path.concat(this._key);
@@ -56,77 +61,69 @@ export class ValidateInputLazyPath implements ValidationInput {
 
 const handleResult = <Input, Output>(
   ctx: ValidationContext,
-  result: ValidateSync<Output>
+  result: ValidationSync<Output>
 ):
   | { ok: true; data: Output }
-  | { ok: false; errors: Issue[] } => {
+  | { ok: false; validation: Validation<Input> } => {
   if (isValid(result)) {
     return { ok: true, data: result.value };
   } else {
-    var issuesCount = ctx.issues.length
-    if (!issuesCount) {
-      throw new Error(`Validation failed, without errors`)
+    if (!ctx.common.issues.length) {
+      throw new Error("Validation failed");
     }
-    return { ok: false, errors: ctx.issues }
+    const validation = new Validation(ctx.common.issues);
+    return { ok: false, validation };
   }
 }
 
-export type ValidationSuccess<Output> = { ok: true; data: Output }
-export type ValidationError<Input> = { ok: false; errors: Issue[] }
+export type SchemaOk<Output> = { ok: true; data: Output };
+export type SchemaError<Input> = { ok: false; validation: Validation<Input> };
 
-export type ValidationReturn<Input, Output> =
-  | ValidationSuccess<Output>
-  | ValidationError<Input>
+export type SchemaValidation<Input, Output> =
+  | SchemaOk<Output>
+  | SchemaError<Input>;
 
 export abstract class SchemaOf<
   Output = any,
-  Def extends ValidationTypeDef = ValidationTypeDef,
+  Def extends SchemaTypeDef = SchemaTypeDef,
   Input = Output
 > {
-  readonly _output!: Output
-  readonly _input!: Input
-  readonly _def!: Def
+  readonly _output!: Output;
+  readonly _input!: Input;
+  readonly _def!: Def; 
 
-  abstract _validation(input: ValidationInput): ValidateReturn<Output>
-
-  // _getType(input: ValidationInput): string {
-  //   return getValidationType(input.data)
-  // }
-  
+  abstract _validation(input: ValidateInput): ValidationResult<Output>
+ 
 
   _getOrReturnCtx(
-    input: ValidationInput,
+    input: ValidateInput,
     ctx?: ValidationContext | undefined
   ): ValidationContext {
     return (
       ctx || {
-        issues: input.parent.issues,
-        contextualErrorMap: input.parent.contextualErrorMap,
-        async: input.parent.async,
+        common: input.parent.common,
         data: input.data,
 
-        parsedType: getValidationType(input.data),
+        parsedType: getValidatedType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
         parent: input.parent,
       }
-    )
+    );
   }
 
-  _processInputParams(input: ValidationInput): {
-    status: ValidateStatus
-    ctx: ValidationContext
+  _processInputParams(input: ValidateInput): {
+    status: ValidationStatus;
+    ctx: ValidationContext;
   } {
     return {
-      status: new ValidateStatus(),
+      status: new ValidationStatus(),
       ctx: {
-        issues: input.parent.issues,
-        contextualErrorMap: input.parent.contextualErrorMap,
-        async: input.parent.async,
+        common: input.parent.common,
         data: input.data,
 
-        parsedType: getValidationType(input.data),
+        parsedType: getValidatedType(input.data),
 
         schemaErrorMap: this._def.errorMap,
         path: input.path,
@@ -135,33 +132,34 @@ export abstract class SchemaOf<
     };
   }
 
-  _validateSync(input: ValidationInput): ValidateSync<Output> {
+  _validationSync(input: ValidateInput): ValidationSync<Output> {
     const result = this._validation(input);
     if (isAsync(result)) {
-      throw new Error("Synchronous parse encountered promise.");
+      throw new Error("Synchronous validation in promise.");
     }
     return result;
   }
 
-  _validateAsync(input: ValidationInput): ValidateAsync<Output> {
+  _validationAsync(input: ValidateInput): ValidationAsync<Output> {
     const result = this._validation(input);
-
     return Promise.resolve(result);
   }
 
   async validate(
     data: unknown,
-    params?: Partial<ValidationParams>
-  ): Promise<ValidationReturn<Input, Output>> {
+    params?: Partial<ParseParams>
+  ): Promise<SchemaValidation<Input, Output>> {
     const ctx: ValidationContext = {
-      issues: [],
-      contextualErrorMap: params?.errorMap,
-      async: true,
+      common: {
+        issues: [],
+        errorMap: params?.errorMap,
+        async: true,
+      },
       path: params?.path || [],
       schemaErrorMap: this._def.errorMap,
       parent: null,
       data,
-      parsedType: getValidationType(data),
+      parsedType: getValidatedType(data),
     };
 
     const maybeAsyncResult = this._validation({ data, path: [], parent: ctx });
@@ -171,25 +169,26 @@ export abstract class SchemaOf<
     return handleResult(ctx, result);
   }
 
+
   add<RefinedOutput extends Output>(
     check: (arg: Output) => arg is RefinedOutput,
     message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)
-  ): ValidationEffects<this, RefinedOutput, Input>;
+  ): Effect<this, RefinedOutput, Input>;
   add(
     check: (arg: Output) => unknown | Promise<unknown>,
     message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)
-  ): ValidationEffects<this, Output, Input>;
+  ): Effect<this, Output, Input>;
   add(
     check: (arg: Output) => unknown,
     message?: string | CustomErrorParams | ((arg: Output) => CustomErrorParams)
-  ): ValidationEffects<this, Output, Input> {
+  ): Effect<this, Output, Input> {
     const getIssueProperties = (val: Output) => {
       if (typeof message === "string" || typeof message === "undefined") {
         return { message };
       } else if (typeof message === "function") {
-        return message(val)
+        return message(val);
       } else {
-        return message
+        return message;
       }
     };
     return this._refinement((val, ctx) => {
@@ -215,41 +214,69 @@ export abstract class SchemaOf<
       } else {
         return true;
       }
-    })
+    });
+  }
+
+  refinement<RefinedOutput extends Output>(
+    check: (arg: Output) => arg is RefinedOutput,
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
+  ): Effect<this, RefinedOutput, Input>;
+  refinement(
+    check: (arg: Output) => boolean,
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
+  ): Effect<this, Output, Input>;
+  refinement(
+    check: (arg: Output) => unknown,
+    refinementData: ErrorData | ((arg: Output, ctx: RefinementCtx) => ErrorData)
+  ): Effect<this, Output, Input> {
+    return this._refinement((val, ctx) => {
+      if (!check(val)) {
+        ctx.addIssue(
+          typeof refinementData === "function"
+            ? refinementData(val, ctx)
+            : refinementData
+        );
+        return false;
+      } else {
+        return true;
+      }
+    });
   }
 
   _refinement(
     refinement: RefinementEffect<Output>["refinement"]
-  ): ValidationEffects<this, Output, Input> {
-    return new ValidationEffects({
+  ): Effect<this, Output, Input> {
+    return new Effect({
       schema: this,
-      name: ValidationKind.Effects,
+      type: SchemaKind.Effect,
       effect: { type: "refinement", refinement },
     });
   }
 
   constructor(def: Def) {
     this._def = def
-    this.validate = this.validate.bind(this)
-    this.add = this.add.bind(this)
-    this.array = this.array.bind(this)
+    this.validate = this.validate.bind(this);
+    this.add = this.add.bind(this);
+    this.array = this.array.bind(this);
     this.convert = this.convert.bind(this)
   }
 
-  array(): ValidationArray<this> {
-    return ValidationArray.create(this)
-  }  
+  array(): Array<this> {
+    return Array.create(this)
+  }
 
   convert<NewOut>(
     convert: (arg: Output, ctx: RefinementCtx) => NewOut | Promise<NewOut>
-  ): ValidationEffects<this, NewOut> {
-    return new ValidationEffects({
+  ): Effect<this, NewOut> {
+    return new Effect({
       schema: this,
-      name: ValidationKind.Effects,
-      effect: { type: "convert", convert: convert },
+      type: SchemaKind.Effect,
+      effect: { type: "convert", convert },
     }) as any;
-  }
+  } 
 }
+
+export type Refinement<T> = (arg: T, ctx: RefinementCtx) => any
 
 export type RefinementEffect<T> = {
   type: "refinement";
@@ -260,31 +287,34 @@ export type ConvertEffect<T> = {
   convert: (arg: T, ctx: RefinementCtx) => any;
 };
 
-export type Effect<T> =
+export type EffectType<T> =
   | RefinementEffect<T>
   | ConvertEffect<T>
 
-export interface EffectsDef<T extends ValidateAnyType = ValidateAnyType>
-  extends ValidationTypeDef {
+export interface EffectDef<T extends SchemaTypeAny = SchemaTypeAny>
+  extends SchemaTypeDef {
   schema: T;
-  name: ValidationKind.Effects;
-  effect: Effect<any>;
+  type: SchemaKind.Effect;
+  effect: EffectType<any>;
 }
 
-export class ValidationEffects<
-  T extends ValidateAnyType,
+export class Effect<
+  T extends SchemaTypeAny,
   Output = T["_output"],
   Input = T["_input"]
-> extends SchemaOf<Output, EffectsDef<T>, Input> {
+> extends SchemaOf<Output, EffectDef<T>, Input> {
+  innerType() {
+    return this._def.schema;
+  }
 
-  _validation(input: ValidationInput): ValidateReturn<this["_output"]> {
+  _validation(input: ValidateInput): ValidationResult<this["_output"]> {
     const { status, ctx } = this._processInputParams(input);
 
-    const effect = this._def.effect || null;
+    const effect = this._def.effect || null    
 
     const checkCtx: RefinementCtx = {
       addIssue: (arg: ErrorData) => {
-        addIssueToContext(ctx, arg);
+        addError(ctx, arg);
         if (arg.fatal) {
           status.abort();
         } else {
@@ -302,19 +332,19 @@ export class ValidationEffects<
         acc: unknown
       ): any => {
         const result = effect.refinement(acc, checkCtx);
-        if (ctx.async) {
+        if (ctx.common.async) {
           return Promise.resolve(result);
         }
         if (result instanceof Promise) {
           throw new Error(
-            "Refinement async operation."
+            "Async operation."
           );
         }
-        return acc
+        return acc;
       };
 
-      if (ctx.async === false) {
-        const inner = this._def.schema._validateSync({
+      if (ctx.common.async === false) {
+        const inner = this._def.schema._validationSync({
           data: ctx.data,
           path: ctx.path,
           parent: ctx,
@@ -327,7 +357,7 @@ export class ValidationEffects<
         return { status: status.value, value: inner.value };
       } else {
         return this._def.schema
-          ._validateAsync({ data: ctx.data, path: ctx.path, parent: ctx })
+          ._validationAsync({ data: ctx.data, path: ctx.path, parent: ctx })
           .then((inner) => {
             if (inner.status === "aborted") return INVALID;
             if (inner.status === "dirty") status.dirty();
@@ -340,8 +370,8 @@ export class ValidationEffects<
     }
 
     if (effect.type === "convert") {
-      if (ctx.async === false) {
-        const base = this._def.schema._validateSync({
+      if (ctx.common.async === false) {
+        const base = this._def.schema._validationSync({
           data: ctx.data,
           path: ctx.path,
           parent: ctx,
@@ -352,14 +382,14 @@ export class ValidationEffects<
         const result = effect.convert(base.value, checkCtx);
         if (result instanceof Promise) {
           throw new Error(
-            `Convert async operation.`
+            `Async operation`
           );
         }
 
         return { status: status.value, value: result };
       } else {
         return this._def.schema
-          ._validateAsync({ data: ctx.data, path: ctx.path, parent: ctx })
+          ._validationAsync({ data: ctx.data, path: ctx.path, parent: ctx })
           .then((base) => {
             if (!isValid(base)) return base
             return Promise.resolve(effect.convert(base.value, checkCtx)).then(
@@ -369,24 +399,24 @@ export class ValidationEffects<
       }
     }
 
-    util.assertNever(effect);
+    util.assertNever(effect)
   }
 
-  static create = <I extends ValidateAnyType>(
+  static create = <I extends SchemaTypeAny>(
     schema: I,
-    effect: Effect<I["_output"]>
-  ): ValidationEffects<I, I["_output"]> => {
-    return new ValidationEffects({
+    effect: EffectType<I["_output"]>
+  ): Effect<I, I["_output"]> => {
+    return new Effect({
       schema,
-      name: ValidationKind.Effects,
+      type: SchemaKind.Effect,
       effect
     });
-  }
+  };  
 }
 
-export enum ValidationKind {
+export enum SchemaKind {
   String = "String",
   Array = "Array",
   Object = "Object",
-  Effects = "Effects"
+  Effect = "Effect",
 }

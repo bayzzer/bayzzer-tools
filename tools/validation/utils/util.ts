@@ -1,11 +1,11 @@
 export namespace util {
-
+ 
   export function assertNever(_x: never): never {
     throw new Error();
   }
 
-  export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
-  export type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>
+  export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+  export type OmitKeys<T, K extends string> = Pick<T, Exclude<keyof T, K>>;  
 
   export const arrayToEnum = <T extends string, U extends [T, ...T[]]>(
     items: U
@@ -15,11 +15,17 @@ export namespace util {
       obj[item] = item;
     }
     return obj as any;
-  }
+  };
+
+  export const objectValues = (obj: any) => {
+    return objectKeys(obj).map(function (e) {
+      return obj[e];
+    });
+  };
 
   export const objectKeys: ObjectConstructor["keys"] =
-    typeof Object.keys === "function"
-      ? (obj: any) => Object.keys(obj)
+    typeof Object.keys === "function" // eslint-disable-line ban/ban
+      ? (obj: any) => Object.keys(obj) // eslint-disable-line ban/ban
       : (object: any) => {
         const keys = [];
         for (const key in object) {
@@ -28,31 +34,40 @@ export namespace util {
           }
         }
         return keys;
-      }
+      };
+
+  export const jsonStringifyReplacer = (_: string, value: any): any => {
+    if (typeof value === "bigint") {
+      return value.toString();
+    }
+    return value;
+  };
 }
 
-export const ValidationEnum = util.arrayToEnum([
+export const ValidatedType = util.arrayToEnum([
   "string",
   "array",
   "object",
-  "unknown"
+  "unknown",
 ]);
 
-export type ValidationType = keyof typeof ValidationEnum
+export type ValidatedType = keyof typeof ValidatedType;
 
-export const getValidationType = (data: any): ValidationType => {
-  const t = typeof data
+export const getValidatedType = (data: any): ValidatedType => {
+  const t = typeof data;
 
   switch (t) {
+
     case "string":
-      return ValidationEnum.string
+      return ValidatedType.string;
 
     case "object":
       if (Array.isArray(data)) {
-        return ValidationEnum.array
+        return ValidatedType.array;
       }
-      return ValidationEnum.object      
+      return ValidatedType.object;
+
     default:
-      return ValidationEnum.unknown
+      return ValidatedType.unknown;
   }
 };

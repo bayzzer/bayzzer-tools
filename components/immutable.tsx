@@ -65,7 +65,45 @@ export const Immutable = () => {
         newStateImmutable.pez = () => { console.log('pez new state') }
     }
 
+    const test = async () => {
+        const t: SchemaOf<User> = object({
+            other: string().required('*required').min(3),
+            obj: object({
+                id: string().required('required value')
+            }),
+            arr: string().array().nonempty('No empty please').min(6),
+            username: string().add((val) => val.length > 2, {
+                message: "String can be more than 2 characters",
+            }).convert(val => val.toUpperCase()),
+            password: string().min(2).max(4, 'max 4').regex(/^[A-Z]*$/).email(),
+            key: object({
+                values: string().array().max(2)
+            })
+        })
+
+        var d: User = {
+            username: 'u4',
+            password: '',
+            other: '',
+            obj: {},
+            arr: [],
+            key: {
+                values: ['rtr', 'trt', 'trt']
+            }
+        }
+        var e = await t.validate(d)
+        if(!e.ok){
+            var x = e.validation.getFieldError()
+            console.log(x)
+            
+        }else{
+            console.log(e.data)
+        }
+
+    }
+
     const testString = async () => {
+        /*
         const schema: SchemaOf<User> = object({
             other: string().required('*required').min(3),
             obj: object({
@@ -109,14 +147,21 @@ export const Immutable = () => {
         }
 
         var r = await schema.validate(user)
+
+        if(!r.ok){
+            r.errors
+        }
         
         console.log(r)
+        */
     }
 
     return (
         <>
             <button onClick={testImmutableOperation}>Immutable Operation</button>
             <button onClick={testString}>Test string</button>
+
+            <button onClick={test}>Test</button>
         </>
     )
 }
