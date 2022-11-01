@@ -55,12 +55,12 @@ export class ValidateInputPath implements ValidateInput {
   }
 }
 
-const handleResult = <Input, Output>(
+const handleResult = <T>(
   ctx: ValidationContext,
-  result: ValidationSync<Output>
+  result: ValidationSync<T>
 ):
-  | { ok: true; data: Output }
-  | { ok: false; validation: Validation<Input> } => {
+  | { ok: true; data: T }
+  | { ok: false; validation: Validation<T> } => {
   if (isValid(result)) {
     return { ok: true, data: result.value };
   } else {
@@ -72,12 +72,12 @@ const handleResult = <Input, Output>(
   }
 }
 
-export type SchemaOk<Output> = { ok: true; data: Output };
-export type SchemaError<Input> = { ok: false; validation: Validation<Input> };
+export type SchemaOk<T> = { ok: true; data: T };
+export type SchemaError<T> = { ok: false; validation: Validation<T> };
 
-export type SchemaValidation<Input, Output> =
-  | SchemaOk<Output>
-  | SchemaError<Input>;
+export type SchemaValidation<T> =
+  | SchemaOk<T>
+  | SchemaError<T>;
 
 export abstract class SchemaOf<
   Output = any,
@@ -141,10 +141,10 @@ export abstract class SchemaOf<
     return Promise.resolve(result);
   }
 
-  async validate(
-    data: unknown,
+  async validate<T>(
+    data: T,
     params?: Partial<ValidationParams>
-  ): Promise<SchemaValidation<Input, Output>> {
+  ): Promise<SchemaValidation<T>> {
     const ctx: ValidationContext = {
       common: {
         issues: [],
@@ -161,8 +161,9 @@ export abstract class SchemaOf<
     const maybeAsyncResult = this._validation({ data, path: [], parent: ctx });
     const result = await (isAsync(maybeAsyncResult)
       ? maybeAsyncResult
-      : Promise.resolve(maybeAsyncResult));
-    return handleResult(ctx, result);
+      : Promise.resolve(maybeAsyncResult))
+      //@ts-ignore
+    return handleResult<T>(ctx, result);
   }
 
 

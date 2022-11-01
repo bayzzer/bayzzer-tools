@@ -2,11 +2,11 @@ import { util, ValidatedType } from "./utils/util";
 
 type AllKeys<T> = T extends any ? keyof T : never;
 
-type FieldErrors<T, U = string> = {
+export type FieldErrors<T, U = string> = {
   [P in AllKeys<T>]?: U[];
 };
 
-type FieldError<T> = {
+export type FieldError<T> = {
   [P in AllKeys<T>]?: string;
 };
 

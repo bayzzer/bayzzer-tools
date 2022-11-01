@@ -16,6 +16,11 @@ export {
     isAsync
 } from './utils/validation_util'
 
+export {
+    FieldError,
+    FieldErrors
+} from './validation_error'
+
 export const array = Array.create
 export const string = String.create
 export const object = Object.create

@@ -37,9 +37,8 @@ export type ValidationParams = {
   async: boolean;
 };
 
-export type ValidationPathComponent = string | number;
+ type ValidationPathComponent = string | number;
 export type ValidationPath = ValidationPathComponent[];
-export const EMPTY_PATH: ValidationPath = [];
 
 export interface ValidationContext {
   readonly common: {
