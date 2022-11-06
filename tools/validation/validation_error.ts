@@ -122,9 +122,14 @@ export class Validation<T = any> extends Error {
     return fieldErrors
   }
 
-  getFieldError(): FieldError<T> {
+  getFieldError<K extends keyof T>(fields?: K[]): FieldError<T> {
+    let errors = this.errors
+    if (fields && fields.length > 0) {
+      errors = this.errors.filter(r => fields.includes(r.path[0] as any))
+    }
+
     let fieldErrors: any = {}
-    for (const sub of this.errors) {
+    for (const sub of errors) {
       if (sub.path.length > 0) {
         if (!fieldErrors[sub.path[0]]) {
           fieldErrors[sub.path[0]] = sub.message

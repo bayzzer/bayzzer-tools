@@ -9,8 +9,11 @@ export {
     clsx
 } from '@bayzzer/tools'
 
+const immutable = new ImmutableManage().create
+
 export {
-    ImmutableManage
+    ImmutableManage,
+    immutable
 }
 
 export * from './tools/validation'

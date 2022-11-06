@@ -93,7 +93,7 @@ export const Immutable = () => {
         }
         var e = await t.validate(d)
         if(!e.ok){
-            var x = e.validation.getFieldError()
+            var x = e.validation.getFieldError(['arr', 'password', 'obj', 'other'])
             console.log(x)
             
         }else{

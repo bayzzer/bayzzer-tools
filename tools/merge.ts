@@ -13,6 +13,7 @@ export const mergeDeep = <T>(target: T, ...sources: any): T => {
                 // @ts-ignore
                 mergeDeep(target[key], source[key]);
             } else {
+                // @ts-ignore
                 Object.assign(target, {
                     [key]: source[key]
                 })
